@@ -542,37 +542,37 @@ image:
     file: images/Raspiaudio.png
     id: raspiIm
     resize: 320x240
-    type: RGB
+    type: RGB565
   - platform: file
     file: images/WFWW.png
     id: WFWWIm
     resize: 320x240
-    type: RGB
+    type: RGB565
   - platform: file
     file: images/W.png
     id: WIm
     resize: 320x240
-    type: RGB
+    type: RGB565
   - platform: file
     file: images/LISTEN.png
     id: LIm
     resize: 320x240
-    type: RGB
+    type: RGB565
   - platform: file
     file: images/ANSWER.png
     id: AIm
     resize: 320x240
-    type: RGB
+    type: RGB565
   - platform: file
     file: images/mute_mic.png
     id: muteMicIm
     resize: 320x240
-    type: RGB
+    type: RGB565
   - platform: file
     file: images/mute_speaker.png
     id: muteSpeakerIm
     resize: 320x240
-    type: RGB
+    type: RGB565
 
 font:
   - file:
