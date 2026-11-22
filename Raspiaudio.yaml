@@ -223,7 +223,7 @@ media_source:
     id: sendspin_source
     buffer_size: 2000000
 
-# Raspiaudio.yaml - Version refactorisée (Partie 2/5)
+# === 2. AUDIO, LECTEURS & ASSISTANT VOCAL ===
 
 media_player:
   - platform: speaker
@@ -533,7 +533,7 @@ interval:
                 else:
                   - lambda: id(volume_display_timer)++;
 
-# Raspiaudio.yaml - Version refactorisée (Partie 3.1)
+# === 3. RESSOURCES GRAPHIQUES & ÉCRAN ST7789V ===
 
 image:
   - platform: file
@@ -894,7 +894,7 @@ display:
           it.image(0, 0, id(muteMicIm));
           id(draw_status_overlay).execute(&it, true, true, false);
 
-# Raspiaudio.yaml - Version refactorisée (Partie 4.1)
+# === 4. CAPTEURS, ENCODEURS & BOUTONS ===
 
 sensor:
   - platform: homeassistant
@@ -1150,8 +1150,6 @@ binary_sensor:
               else:
                 - script.execute: go_assist
 
-# Raspiaudio.yaml - Version refactorisée (Partie 4.2)
-
   - platform: template
     name: "Radio 1"
     id: btn_1
@@ -1394,7 +1392,7 @@ text:
       then:
         - lambda: 'id(ma_player_entity_id) = x;'
 
-# Raspiaudio.yaml - Version refactorisée (Partie 5.1)
+# === 5. SCRIPTS D'AFFICHAGE, RADIO & AUDIO ===
 
 script:
 
@@ -1687,8 +1685,6 @@ script:
             - lambda: id(preset_message) = "NO RADIO";
             - script.execute: show_preset_feedback
 
-# Raspiaudio.yaml - Version refactorisée (Partie 5.2.1.1)
-
   - id: save_radio_preset
     mode: restart
     parameters:
@@ -1948,8 +1944,6 @@ script:
                         - voice_assistant.start:
                             silence_detection: true
 
-# Raspiaudio.yaml - Version refactorisée (Partie 5.2.1.2)
-
   - id: finish_temporary_assist
     mode: single
     then:
@@ -2059,8 +2053,6 @@ script:
             - lambda: 'id(phase) = 3;'
             - script.execute: reset_display
             - voice_assistant.start:
-
-# Raspiaudio.yaml - Version refactorisée (Partie 5.2.2.1)
 
   - id: mute_unmute
     then:
@@ -2239,8 +2231,6 @@ script:
           } else if (id(phase) == 4) {
             id(answering).execute();
           }
-
-# Raspiaudio.yaml - Version refactorisée (Partie 5.2.2.2 - Fin)
 
   - id: logo
     then:
