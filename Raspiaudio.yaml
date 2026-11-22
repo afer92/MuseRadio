@@ -4,8 +4,8 @@
 # Flash: [========= ]  94.5% (used 3717823 bytes from 3932160 bytes)
 
 substitutions:
-  name: raspiaudio-radio-a998c4
-  friendly_name: Raspiaudio Radio a998c4 last
+  name: raspiaudio-radio
+  friendly_name: Raspiaudio Radio
 
 .variables:
   - &weather_entity "weather.forecast_maison"
@@ -223,7 +223,7 @@ media_source:
     id: sendspin_source
     buffer_size: 2000000
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 2/5)
+# Raspiaudio.yaml - Version refactorisée (Partie 2/5)
 
 media_player:
   - platform: speaker
@@ -533,7 +533,7 @@ interval:
                 else:
                   - lambda: id(volume_display_timer)++;
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 3.1)
+# Raspiaudio.yaml - Version refactorisée (Partie 3.1)
 
 image:
   - platform: file
@@ -894,7 +894,7 @@ display:
           it.image(0, 0, id(muteMicIm));
           id(draw_status_overlay).execute(&it, true, true, false);
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 4.1)
+# Raspiaudio.yaml - Version refactorisée (Partie 4.1)
 
 sensor:
   - platform: homeassistant
@@ -1150,7 +1150,7 @@ binary_sensor:
               else:
                 - script.execute: go_assist
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 4.2)
+# Raspiaudio.yaml - Version refactorisée (Partie 4.2)
 
   - platform: template
     name: "Radio 1"
@@ -1394,7 +1394,7 @@ text:
       then:
         - lambda: 'id(ma_player_entity_id) = x;'
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.1)
+# Raspiaudio.yaml - Version refactorisée (Partie 5.1)
 
 script:
 
@@ -1687,7 +1687,7 @@ script:
             - lambda: id(preset_message) = "NO RADIO";
             - script.execute: show_preset_feedback
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.1.1)
+# Raspiaudio.yaml - Version refactorisée (Partie 5.2.1.1)
 
   - id: save_radio_preset
     mode: restart
@@ -1948,7 +1948,7 @@ script:
                         - voice_assistant.start:
                             silence_detection: true
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.1.2)
+# Raspiaudio.yaml - Version refactorisée (Partie 5.2.1.2)
 
   - id: finish_temporary_assist
     mode: single
@@ -2060,7 +2060,7 @@ script:
             - script.execute: reset_display
             - voice_assistant.start:
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.2.1)
+# Raspiaudio.yaml - Version refactorisée (Partie 5.2.2.1)
 
   - id: mute_unmute
     then:
@@ -2240,7 +2240,7 @@ script:
             id(answering).execute();
           }
 
-# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.2.2 - Fin)
+# Raspiaudio.yaml - Version refactorisée (Partie 5.2.2.2 - Fin)
 
   - id: logo
     then:
