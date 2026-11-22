@@ -198,7 +198,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 
 - **ESPHome** (`esp-idf`) via Home Assistant ou CLI.
 - **Home Assistant** incluant l'intégration **Music Assistant** (Sendspin) et une entité météo (`weather.forecast_maison` par défaut, paramétrable dans `.variables`).
-- Check that your radio is authorized to perform Home Assistant actions : (HA > Settings > Devices & Services > ESPHome > your radio > Options…). “Allow the device to perform Home Assistant actions” must be selected. This is essential.
+- **Autorisation indispensable** : dans Home Assistant, allez dans **Paramètres → Appareils et services → ESPHome → Votre Radio → Configurer / Options** et cochez **« Autoriser l'appareil à exécuter des actions Home Assistant »** (*Allow the device to perform Home Assistant actions*).
 
 ### 2. Arborescence des fichiers requise
 
@@ -287,3 +287,8 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Écran noir après 1 heure** : Le rétroéclairage s'éteint automatiquement après `3600 s` d'inactivité (`lightTO`). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
 * **Bloqué sur `"Waiting WiFi..."`** : Vérifiez les identifiants dans `secrets.yaml`. En cas d'absence prolongée de réseau, l'appareil active son point d'accès de secours **`Raspiaudio-radio-full`** (mot de passe : `12345678`) permettant de reconfigurer le Wi-Fi via le portail captif.
 
+---
+
+## 📄 Licence
+
+Ce projet est distribué sous licence **GNU General Public License v3.0 (GPL-3.0)** — consultez le fichier [LICENSE](LICENSE) pour plus de détails.
