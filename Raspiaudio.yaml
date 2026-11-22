@@ -1,0 +1,2443 @@
+# 2026.11.0
+
+# RAM:   [====      ]  40.4% (used 138139 bytes from 341760 bytes)
+# Flash: [========= ]  94.5% (used 3717823 bytes from 3932160 bytes)
+
+substitutions:
+  name: raspiaudio-radio-a998c4
+  friendly_name: Raspiaudio Radio a998c4 last
+
+.variables:
+  - &weather_entity "weather.forecast_maison"
+
+packages:
+  - !include common/base_text_sensor.yaml
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2026.9.0
+  name_add_mac_suffix: false
+  project:
+    name: raspiaudio.radio
+    version: "2026.9.5"
+  on_boot:
+    - priority: 800
+      then:
+        - light.turn_off: screen_backlight
+        - wait_until:
+            condition:
+              lambda: return id(myDisplay).is_ready();
+            timeout: 3s
+        - if:
+            condition:
+              lambda: return id(myDisplay).is_ready();
+            then:
+              - lambda: |-
+                  id(myDisplay).show_page(logoP);
+                  id(myDisplay).update();
+              - light.turn_on: screen_backlight
+            else:
+              - logger.log: "Display not ready during boot splash"
+
+    - priority: -100
+      then:
+        - output.turn_off: dac_mute
+        - light.turn_on:
+            id: screen_backlight
+            brightness: 100%
+        - lambda: |-
+            id(lightTO) = 0;
+            id(phase) = 0;
+        - script.execute: apply_local_codec_volume
+        - media_player.volume_set:
+            id: speaker_media_player
+            volume: !lambda return id(Vol);
+        - script.execute: reset_display
+        - text.set:
+            id: radio_player
+            value: !lambda 'return id(ma_player_entity_id);'
+
+esp32:
+  board: esp32-s3-devkitc-1
+  flash_size: 8MB
+  framework:
+    type: esp-idf
+    sdkconfig_options:
+      CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
+      CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
+      CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+
+preferences:
+  flash_write_interval: 5s
+
+psram:
+  mode: octal
+  speed: 80MHz
+
+external_components:
+  - source: github://RASPIAUDIO/esphomeRadio@187efd71c9682f92dc03d22c546e6dcb729c4c36
+    components: [es8388]
+
+api:
+  reboot_timeout: 0s
+
+logger:
+  level: DEBUG
+  logs:
+    sensor: WARN
+
+wifi:
+  id: wifi_ssid
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+    - ssid: !secret wifi_ssid_1
+      password: !secret wifi_password
+  on_connect:
+    - delay: 15s
+    - logger.set_level: INFO
+    - logger.log:
+        format: "Connecté avec succès au SSID : %s"
+        args: ['id(wifi_ssid_sensor).state.c_str()']
+  ap:
+    ssid: "Raspiaudio-radio-full"
+    password: "12345678"
+
+ota:
+  - platform: esphome
+    id: ota_esphome
+
+captive_portal:
+
+improv_serial:
+
+remote_receiver:
+  id: ir_receiver
+  pin:
+    number: GPIO47
+    inverted: true
+  dump: nec
+  on_nec:
+    then:
+      - if:
+          condition:
+            lambda: 'return x.command == 0xBF40;'
+          then:
+            - logger.log: "IR volume up"
+            - script.execute:
+                id: adjust_volume
+                delta: 0.05
+      - if:
+          condition:
+            lambda: 'return x.command == 0xB748;'
+          then:
+            - logger.log: "IR volume down"
+            - script.execute:
+                id: adjust_volume
+                delta: -0.05
+      - if:
+          condition:
+            lambda: 'return ((x.command == 0xFE01) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR mute"
+            - script.execute: mute_unmute
+      - if:
+          condition:
+            lambda: 'return ((x.command == 0xF609) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR ret"
+            - if:
+                condition:
+                  lambda: |-
+                    return id(music_active) || id(assist_return_to_ma) ||
+                        id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
+                then:
+                  - script.execute: temporary_assist
+                else:
+                  - script.execute: go_assist
+
+es8388:
+
+i2c:
+  id: codec_bus
+  scl: GPIO11
+  sda: GPIO18
+  scan: true
+
+i2c_device:
+  id: my_es8388
+  address: 0x10
+
+spi:
+  - id: spi_bus0
+    clk_pin: GPIO12
+    mosi_pin: GPIO8
+    interface: hardware
+
+i2s_audio:
+  - id: i2s_audio_bus
+    i2s_lrclk_pin: GPIO16
+    i2s_bclk_pin: GPIO5
+    i2s_mclk_pin: GPIO0
+
+microphone:
+  - platform: i2s_audio
+    id: radio_mic
+    sample_rate: 16000
+    i2s_din_pin: GPIO4
+    bits_per_sample: 16bit
+    adc_type: external
+
+speaker:
+  - platform: i2s_audio
+    id: radio_speaker
+    i2s_audio_id: i2s_audio_bus
+    i2s_dout_pin: GPIO17
+    dac_type: external
+    sample_rate: 48000
+    bits_per_sample: 16bit
+    channel: stereo
+    buffer_duration: 500ms
+  - platform: mixer
+    id: radio_mixer
+    output_speaker: radio_speaker
+    num_channels: 2
+    source_speakers:
+      - id: assist_mixer_input
+      - id: music_mixer_input
+  - platform: resampler
+    id: assist_speaker
+    output_speaker: assist_mixer_input
+    sample_rate: 48000
+  - platform: resampler
+    id: music_speaker
+    output_speaker: music_mixer_input
+    sample_rate: 48000
+
+sendspin:
+  id: sendspin_hub
+
+media_source:
+  - platform: sendspin
+    id: sendspin_source
+    buffer_size: 2000000
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 2/5)
+
+media_player:
+  - platform: speaker
+    name: None
+    id: speaker_media_player
+    announcement_pipeline:
+      speaker: assist_speaker
+      format: WAV
+      sample_rate: 48000
+      num_channels: 1
+    files:
+      - id: little_sound
+        file: https://github.com/esphome/home-assistant-voice-pe/raw/dev/sounds/timer_finished.flac
+    on_announcement:
+      - if:
+          condition:
+            lambda: 'return (id(phase) != 2);'
+          then:
+            - lambda: |-
+                id(lightTO) = 0;
+                if (id(phase) == 1) {
+                  id(phase) = 2;
+                  id(external_player).execute();
+                }
+            - if:
+                condition:
+                  lambda: 'return id(auto_mute_active);'
+                then:
+                  - script.execute: mute_off
+      - micro_wake_word.stop:
+    on_idle:
+      - wait_until:
+          and:
+            - not:
+                media_player.is_announcing:
+                  id: speaker_media_player
+            - not:
+                voice_assistant.is_running:
+      - if:
+          condition:
+            lambda: 'return !id(assist_return_to_ma) && (id(phase) == 4 || id(phase) == 2);'
+          then:
+            - lambda: 'id(phase) = 1;'
+            - script.execute: reset_display
+
+  - platform: speaker
+    id: local_radio_player
+    name: "Local Web Radio"
+    internal: true
+    volume_initial: 0.2
+    announcement_pipeline:
+      speaker: assist_speaker
+      format: WAV
+      sample_rate: 48000
+      num_channels: 1
+    media_pipeline:
+      speaker: music_speaker
+      format: MP3
+      sample_rate: 48000
+      num_channels: 2
+    on_state:
+      - lambda: |-
+          using media_player::MediaPlayerState;
+          const bool playing = id(local_radio_player).state == MediaPlayerState::MEDIA_PLAYER_STATE_PLAYING ||
+                               id(music_source_player).state == MediaPlayerState::MEDIA_PLAYER_STATE_PLAYING;
+          if (playing != id(music_active)) {
+            id(music_active) = playing;
+            id(update_playback_mode).execute();
+          }
+
+  - platform: sendspin
+    id: sendspin_media_player
+    name: Radio Music Assistant
+    volume_increment: 2%
+    on_state:
+      - if:
+          condition:
+            media_player.is_playing: sendspin_media_player
+          then:
+            - script.stop: enter_idle_mode
+            - micro_wake_word.stop:
+      - script.execute: schedule_music_refresh
+
+  - platform: speaker_source
+    id: music_source_player
+    internal: true
+    on_state:
+      - lambda: |-
+          using media_player::MediaPlayerState;
+          const bool playing = id(local_radio_player).state == MediaPlayerState::MEDIA_PLAYER_STATE_PLAYING ||
+                               id(music_source_player).state == MediaPlayerState::MEDIA_PLAYER_STATE_PLAYING;
+          if (playing != id(music_active)) {
+            id(music_active) = playing;
+            id(update_playback_mode).execute();
+          }
+    media_pipeline:
+      speaker: music_speaker
+      sources:
+        - sendspin_source
+      format: FLAC
+      sample_rate: 48000
+      num_channels: 2
+
+micro_wake_word:
+  id: mww
+  microphone: radio_mic
+  stop_after_detection: false
+  models:
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/okay_nabu_20241226.3/okay_nabu.json
+      id: okay_nabu
+    - model: hey_jarvis
+      id: hey_jarvis
+    - model: hey_mycroft
+      id: hey_mycroft
+    - model: https://github.com/kahrendt/microWakeWord/releases/download/stop/stop.json
+      id: stop
+      internal: true
+  on_wake_word_detected:
+    - if:
+        condition:
+          lambda: |-
+            return !id(mic_muted) && !id(music_active) &&
+                id(sendspin_media_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING;
+        then:
+          - light.turn_on:
+              id: screen_backlight
+              brightness: 100%
+              effect: none
+          - voice_assistant.start:
+              wake_word: !lambda return wake_word;
+
+voice_assistant:
+  id: va
+  microphone: radio_mic
+  media_player: speaker_media_player
+  micro_wake_word: mww
+  use_wake_word: false
+  noise_suppression_level: 2
+  auto_gain: 31dBFS
+  volume_multiplier: 2.0
+  on_listening:
+    - logger.log: "listening 3 => phase"
+    - micro_wake_word.stop:
+    - light.turn_on:
+        id: screen_backlight
+        brightness: 100%
+        effect: none
+    - lambda: 'id(phase) = 3;'
+    - script.execute: reset_display
+  on_stt_end:
+    - text_sensor.template.publish:
+        id: text_request
+        state: !lambda return x;
+  on_tts_start:
+    - logger.log: "answering 4 => phase"
+    - text_sensor.template.publish:
+        id: text_response
+        state: !lambda return x;
+    - light.turn_on:
+        id: screen_backlight
+        brightness: 100%
+        effect: none
+    - lambda: 'id(phase) = 4;'
+    - script.execute: reset_display
+  on_end:
+    - wait_until:
+        and:
+          - not:
+              media_player.is_announcing:
+                id: speaker_media_player
+          - not:
+              voice_assistant.is_running:
+    - if:
+        condition:
+          lambda: 'return id(assist_return_to_ma);'
+        then:
+          - script.execute: finish_temporary_assist
+        else:
+          - if:
+              condition:
+                lambda: 'return !id(music_active) && (id(phase) != 1);'
+              then:
+                - lambda: 'id(phase) = 1;'
+                - script.execute: reset_display
+  on_error:
+    - logger.log: "ERROR!!!!!!!!!!!!!!!!"
+    - light.turn_on:
+        id: screen_backlight
+        brightness: 100%
+        effect: none
+    - delay: 1s
+    - if:
+        condition:
+          lambda: 'return id(assist_return_to_ma);'
+        then:
+          - script.execute: finish_temporary_assist
+        else:
+          - lambda: 'if (!id(music_active)) id(phase) = 1;'
+          - script.execute: reset_display
+
+output:
+  - platform: gpio
+    id: dac_mute
+    pin:
+      number: GPIO46
+      inverted: true
+      mode:
+        output: true
+      ignore_strapping_warning: true
+
+  - platform: ledc
+    pin:
+      number: GPIO41
+      mode:
+        output: true
+    id: screen_backlight_pin
+
+light:
+  - platform: monochromatic
+    output: screen_backlight_pin
+    id: screen_backlight
+    name: Screen Backlight
+
+globals:
+  - id: music_active
+    type: bool
+    initial_value: 'false'
+  - id: assist_return_to_ma
+    type: bool
+    initial_value: 'false'
+  - id: assist_left_ma_group
+    type: bool
+    initial_value: 'false'
+  - id: preset_message
+    type: std::string
+    initial_value: '""'
+  - id: ma_player_entity_id
+    type: std::string
+    restore_value: true
+    max_restore_data_length: 96
+    initial_value: '""'
+  - id: lightTO
+    type: int
+    initial_value: '0'
+  - id: Vol
+    type: float
+    initial_value: '0.6'
+    restore_value: true
+  - id: ma_volume_target_percent
+    type: int
+    initial_value: '-1'
+  - id: ma_volume_last_command_ms
+    type: uint32_t
+    initial_value: '0'
+  - id: phase
+    type: int
+    initial_value: '0'
+  - id: mute
+    type: bool
+    initial_value: 'false'
+  - id: mic_muted
+    type: bool
+    initial_value: 'false'
+  - id: auto_mute_active
+    type: bool
+    initial_value: 'false'
+  - id: volume_display_active
+    type: bool
+    initial_value: 'false'
+  - id: volume_display_timer
+    type: int
+    initial_value: '0'
+
+interval:
+  - interval: 1s
+    then:
+      - if:
+          condition:
+            light.is_on: screen_backlight
+          then:
+            - if:
+                condition:
+                  lambda: 'return id(lightTO) < 3600;'
+                then:
+                  - lambda: id(lightTO)++;
+                else:
+                  - lambda: id(lightTO) = 0;
+                  - light.turn_off: screen_backlight
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(phase) == 0;'
+                then:
+                  - light.turn_on: screen_backlight
+      - if:
+          condition:
+            lambda: 'return id(volume_display_active);'
+          then:
+            - if:
+                condition:
+                  lambda: 'return id(volume_display_timer) >= 3;'
+                then:
+                  - lambda: |-
+                      id(volume_display_active) = false;
+                      id(volume_display_timer) = 0;
+                      if (id(myDisplay).is_ready()) id(myDisplay).update();
+                else:
+                  - lambda: id(volume_display_timer)++;
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 3.1)
+
+image:
+  - platform: file
+    file: images/Raspiaudio.png
+    id: raspiIm
+    resize: 320x240
+    type: RGB
+  - platform: file
+    file: images/WFWW.png
+    id: WFWWIm
+    resize: 320x240
+    type: RGB
+  - platform: file
+    file: images/W.png
+    id: WIm
+    resize: 320x240
+    type: RGB
+  - platform: file
+    file: images/LISTEN.png
+    id: LIm
+    resize: 320x240
+    type: RGB
+  - platform: file
+    file: images/ANSWER.png
+    id: AIm
+    resize: 320x240
+    type: RGB
+  - platform: file
+    file: images/mute_mic.png
+    id: muteMicIm
+    resize: 320x240
+    type: RGB
+  - platform: file
+    file: images/mute_speaker.png
+    id: muteSpeakerIm
+    resize: 320x240
+    type: RGB
+
+font:
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_request
+    size: 15
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_response
+    size: 15
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 300
+    id: font_battery_small
+    size: 9
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 700
+    id: font_wifi_label
+    size: 9
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 600
+    id: ma_font_station
+    size: 28
+    glyphs: &ma_glyphs
+      - " "
+      - "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      - "abcdefghijklmnopqrstuvwxyz"
+      - "0123456789"
+      - ".,;:!?-_/\\()[]{}<>|@#&+=*\"'%"
+      - "°"
+      - "àâäáãåçéèêëíìîïñóòôöõúùûüýÿ"
+      - "ÀÂÄÁÃÅÇÉÈÊËÍÌÎÏÑÓÒÔÖÕÚÙÛÜÝ"
+      - "`œŒæÆ"
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 500
+    id: ma_font_heading
+    size: 22
+    glyphs: *ma_glyphs
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 500
+    id: ma_font_metadata
+    size: 18
+    glyphs: *ma_glyphs
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 500
+    id: ma_font_status
+    size: 14
+    glyphs: *ma_glyphs
+
+color:
+  - id: green
+    hex: '75D15F'
+  - id: red
+    hex: 'FF3131'
+  - id: amber
+    hex: 'FBAB35'
+  - id: lime
+    hex: '20FC30'
+  - id: black
+    hex: '000000'
+  - id: white
+    hex: 'ffffff'
+  - id: light_blue
+    hex: 'CFE2F3'
+  - id: bg_blue
+    hex: '032341'
+  - id: bg_charcoal
+    hex: '323232'
+  - id: light_green
+    hex: 'AAD1AA'
+  - id: ma_bg
+    hex: '08131F'
+  - id: ma_header
+    hex: '12314A'
+  - id: ma_panel
+    hex: '0E2235'
+  - id: ma_footer
+    hex: '163A54'
+  - id: ma_accent
+    hex: 'E4B95B'
+  - id: ma_text
+    hex: 'F2F6F9'
+  - id: ma_text_muted
+    hex: 'A7BECE'
+  - id: ma_bar_bg
+    hex: '24455E'
+  - id: ma_bar_fill
+    hex: '79D4C8'
+  - id: ma_battery_low
+    hex: 'D95C5C'
+
+display:
+  - id: myDisplay
+    platform: ili9xxx
+    spi_id: spi_bus0
+    model: ST7789V
+    cs_pin: GPIO40
+    dc_pin: GPIO39
+    reset_pin: GPIO9
+    invert_colors: true
+    rotation: 90
+    update_interval: never
+    auto_clear_enabled: false
+    pages:
+      - id: presetP
+        lambda: |-
+          const int w = it.get_width();
+          const int h = it.get_height();
+          it.filled_rectangle(0, 0, w, h, id(ma_bg));
+          it.filled_rectangle(12, h / 2 - 42, w - 24, 84, id(ma_panel));
+          it.rectangle(12, h / 2 - 42, w - 24, 84, id(ma_accent));
+          it.printf(w / 2, h / 2, id(ma_font_heading), id(ma_text),
+                    TextAlign::CENTER, "%s", id(preset_message).c_str());
+
+      - id: musicP
+        lambda: |-
+          const int w = it.get_width();
+          const int h = it.get_height();
+          auto valid = [](const std::string &s) -> bool {
+            return !s.empty() && s != "unknown" && s != "unavailable" && s != "None";
+          };
+          auto text_width = [&](display::BaseFont *font, const std::string &text) -> int {
+            int x1, y1, width, height;
+            it.get_text_bounds(0, 0, text.c_str(), font, TextAlign::TOP_LEFT,
+                               &x1, &y1, &width, &height);
+            return width;
+          };
+          auto fit_text = [&](display::BaseFont *font, std::string text, int width) -> std::string {
+            if (text_width(font, text) <= width) return text;
+            while (!text.empty()) {
+              size_t end = text.size() - 1;
+              while (end > 0 && (static_cast<unsigned char>(text[end]) & 0xC0) == 0x80) --end;
+              text.resize(end);
+              if (text_width(font, text + "...") <= width) return text + "...";
+            }
+            return "";
+          };
+
+          const bool is_local_web_radio =
+              id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+              id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PAUSED;
+
+          char temp_str[16];
+          if (std::isnan(id(ha_weather_temperature).state)) {
+            snprintf(temp_str, sizeof(temp_str), "--°C");
+          } else {
+            snprintf(temp_str, sizeof(temp_str), "%.1f °C", id(ha_weather_temperature).state);
+          }
+
+          std::string header = is_local_web_radio ? "WEB RADIO " : "MUSIC ASSISTANT ";
+          header += temp_str;
+          bool show_weather_icon = true;
+
+          std::string main_text;
+          std::string subtitle;
+          std::string detail;
+
+          if (is_local_web_radio) {
+            std::string label = id(local_radio_select).current_option();
+            size_t dash = label.find(" - ");
+            if (dash != std::string::npos) {
+              label = label.substr(dash + 3);
+            }
+            main_text = label;
+            subtitle = "Flux direct HTTP";
+            detail = "Mode autonome";
+          } else {
+            const std::string title = valid(id(ma_media_title).state) ? id(ma_media_title).state : "";
+            const std::string artist = valid(id(ma_media_artist).state) ? id(ma_media_artist).state : "";
+            const std::string album = valid(id(ma_media_album).state) ? id(ma_media_album).state : "";
+            const float duration_ms = id(ma_media_duration).state;
+            const bool is_radio = !std::isfinite(duration_ms) || duration_ms <= 500.0f;
+
+            if (is_radio) {
+              main_text = album.empty() ? title : album;
+              subtitle = album.empty() || title == album ? "" : title;
+              detail = artist;
+            } else {
+              if (!album.empty()) {
+                header = album;
+                show_weather_icon = false;
+              }
+              main_text = artist.empty() ? title : artist;
+              subtitle = artist.empty() ? "" : title;
+              const int seconds = int(duration_ms / 1000.0f + 0.5f);
+              char duration[24];
+              snprintf(duration, sizeof(duration), "%d:%02d", seconds / 60, seconds % 60);
+              detail = duration;
+            }
+          }
+
+          display::BaseFont *main_font = id(ma_font_station);
+          if (text_width(main_font, main_text) > w - 48) main_font = id(ma_font_heading);
+          main_text = fit_text(main_font, main_text, w - 48);
+          header = fit_text(id(ma_font_heading), header, show_weather_icon ? w - 64 : w - 32);
+          subtitle = fit_text(id(ma_font_metadata), subtitle, w - 48);
+          detail = fit_text(id(ma_font_status), detail, w - 48);
+
+          it.filled_rectangle(0, 0, w, h, id(ma_bg));
+          it.filled_rectangle(0, 0, w, 50, id(ma_header));
+          it.filled_rectangle(0, 50, w, 3, id(ma_accent));
+          it.filled_rectangle(12, 66, w - 24, 110, id(ma_panel));
+          it.rectangle(12, 66, w - 24, 110, id(ma_accent));
+          it.filled_rectangle(12, h - 50, w - 24, 40, id(ma_footer));
+
+          const int header_w = text_width(id(ma_font_heading), header);
+          const int header_x = (w / 2) - (show_weather_icon ? 14 : 0);
+          it.printf(header_x, 13, id(ma_font_heading), id(ma_text), TextAlign::TOP_CENTER,
+                    "%s", header.c_str());
+
+          if (show_weather_icon && id(ha_weather_condition).has_state()) {
+            const int icon_cx = header_x + (header_w / 2) + 16;
+            const int icon_cy = 24;
+            id(draw_weather_icon).execute(&it, icon_cx, icon_cy, id(ha_weather_condition).state);
+          }
+
+          it.printf(w / 2, 79, main_font, id(ma_text), TextAlign::TOP_CENTER,
+                    "%s", main_text.c_str());
+          it.printf(w / 2, 117, id(ma_font_metadata), id(ma_text_muted), TextAlign::TOP_CENTER,
+                    "%s", subtitle.c_str());
+          it.printf(w / 2, 146, id(ma_font_status), id(ma_text_muted), TextAlign::TOP_CENTER,
+                    "%s", detail.c_str());
+
+          const bool muted = is_local_web_radio ? id(mute) : id(sendspin_media_player).is_muted();
+          const float volume = is_local_web_radio ? id(Vol) : id(sendspin_media_player).volume;
+          const bool volume_known = std::isfinite(volume);
+          const int volume_percent = volume_known ? int(clamp(volume, 0.0f, 1.0f) * 100 + 0.5f) : 0;
+          if (muted) {
+            it.print(24, h - 43, id(ma_font_status), id(ma_accent), "MUTED");
+          } else if (volume_known) {
+            it.printf(24, h - 43, id(ma_font_status), id(ma_text), "VOL %d%%", volume_percent);
+          } else {
+            it.print(24, h - 43, id(ma_font_status), id(ma_text_muted), "VOL --");
+          }
+
+          const int bar_x = 106;
+          const int bar_w = w - 190;
+          it.filled_rectangle(bar_x, h - 37, bar_w, 8, id(ma_bar_bg));
+          const int filled = muted ? 0 : bar_w * volume_percent / 100;
+          if (filled > 0) it.filled_rectangle(bar_x, h - 37, filled, 8, id(ma_bar_fill));
+          if (id(usb_power_detect).state) {
+            it.print(bar_x + bar_w / 2, h - 23, id(font_wifi_label), id(ma_text_muted),
+                     TextAlign::TOP_CENTER, "USB");
+          }
+
+          const int battery_x = w - 57;
+          const int battery_y = h - 43;
+          it.rectangle(battery_x, battery_y, 30, 12, id(ma_text));
+          it.filled_rectangle(battery_x + 30, battery_y + 4, 3, 4, id(ma_text));
+          it.filled_rectangle(battery_x + 2, battery_y + 2, 26, 8, id(ma_bar_bg));
+          const float battery = id(battery_percent).state;
+          if (id(battery_percent).has_state() && std::isfinite(battery)) {
+            const int percent = int(clamp(battery, 0.0f, 100.0f) + 0.5f);
+            const Color battery_color = percent < 20 ? id(ma_battery_low) :
+                percent < 50 ? id(ma_accent) : id(ma_bar_fill);
+            const int battery_fill = 26 * percent / 100;
+            if (battery_fill > 0) {
+              it.filled_rectangle(battery_x + 2, battery_y + 2, battery_fill, 8, battery_color);
+            }
+            it.printf(battery_x + 15, battery_y + 13, id(ma_font_status), id(ma_text_muted),
+                      TextAlign::TOP_CENTER, "%d%%", percent);
+          } else {
+            it.print(battery_x + 15, battery_y + 13, id(ma_font_status), id(ma_text_muted),
+                     TextAlign::TOP_CENTER, "--%");
+          }
+
+      - id: wifiWaitingP
+        lambda: |-
+          const int w = it.get_width();
+          const int h = it.get_height();
+          it.filled_rectangle(0, 0, w, h, id(bg_blue));
+          it.printf(w / 2, h / 2 - 12, id(font_request), id(white), TextAlign::CENTER, "Waiting WiFi...");
+          it.printf(w / 2, h / 2 + 12, id(font_request), id(white), TextAlign::CENTER, "Connecting to network");
+
+      - id: logoP
+        lambda: |-
+          it.image(0, 0, id(raspiIm));
+          id(draw_status_overlay).execute(&it, false, false, false);
+
+      - id: waitingP
+        lambda: |-
+          it.image(0, 0, id(WFWWIm));
+          id(draw_status_overlay).execute(&it, true, true, true);
+
+      - id: waitingBP
+        lambda: |-
+          it.image(0, 0, id(WIm));
+          id(draw_status_overlay).execute(&it, true, true, true);
+
+      - id: listeningP
+        lambda: |-
+          it.image(0, 0, id(LIm));
+          id(draw_status_overlay).execute(&it, true, true, true);
+
+      - id: answeringP
+        lambda: |-
+          it.image(0, 0, id(AIm));
+          it.rectangle(20, 24, 280, 30, Color::BLACK);
+          it.printf(30, 25, id(font_request), Color::BLACK, "%s", id(text_request).state.c_str());
+          it.rectangle(20, 190, 280, 30, Color::BLACK);
+          it.printf(30, 195, id(font_response), Color::BLACK, "%s", id(text_response).state.c_str());
+          id(draw_status_overlay).execute(&it, true, true, true);
+
+      - id: muteMicP
+        lambda: |-
+          it.image(0, 0, id(muteMicIm));
+          id(draw_status_overlay).execute(&it, true, true, false);
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 4.1)
+
+sensor:
+  - platform: homeassistant
+    id: ha_weather_temperature
+    entity_id: *weather_entity
+    attribute: temperature
+    internal: false
+    filters:
+      - throttle: 15min
+
+  - platform: sendspin
+    id: ma_media_duration
+    type: track_duration
+    internal: true
+    on_value:
+      - script.execute: schedule_music_refresh
+
+  - platform: rotary_encoder
+    name: "Volume"
+    id: volume_encoder
+    pin_a:
+      number: GPIO42
+      mode:
+        input: true
+        pullup: true
+    pin_b:
+      number: GPIO3
+      mode:
+        input: true
+        pullup: true
+    on_anticlockwise:
+      then:
+        - script.execute:
+            id: adjust_volume
+            delta: -0.05
+    on_clockwise:
+      then:
+        - script.execute:
+            id: adjust_volume
+            delta: 0.05
+
+  - platform: rotary_encoder
+    name: "Station Selector"
+    id: function_encoder
+    resolution: 1
+    pin_a:
+      number: GPIO7
+      mode:
+        input: true
+        pullup: true
+    pin_b:
+      number: GPIO6
+      mode:
+        input: true
+        pullup: true
+    on_clockwise:
+      then:
+        - logger.log: "Station encoder -> NEXT"
+        - select.next:
+            id: local_radio_select
+            cycle: true
+    on_anticlockwise:
+      then:
+        - logger.log: "Station encoder -> PREV"
+        - select.previous:
+            id: local_radio_select
+            cycle: true
+
+  - platform: adc
+    id: button_adc
+    pin: GPIO1
+    attenuation: auto
+    update_interval: 0.1s
+    on_value_range:
+      - above: 3.0
+        then:
+          - binary_sensor.template.publish:
+              id: btn_confirm
+              state: OFF
+          - binary_sensor.template.publish:
+              id: btn_1
+              state: OFF
+          - binary_sensor.template.publish:
+              id: btn_2
+              state: OFF
+          - binary_sensor.template.publish:
+              id: btn_3
+              state: OFF
+      - above: 0.41
+        below: 0.45
+        then:
+          - binary_sensor.template.publish:
+              id: btn_3
+              state: ON
+      - above: 0.80
+        below: 0.84
+        then:
+          - binary_sensor.template.publish:
+              id: btn_confirm
+              state: ON
+      - above: 1.50
+        below: 1.61
+        then:
+          - binary_sensor.template.publish:
+              id: btn_1
+              state: ON
+      - above: 1.98
+        below: 2.03
+        then:
+          - binary_sensor.template.publish:
+              id: btn_2
+              state: ON
+
+  - platform: adc
+    pin: GPIO13
+    name: Battery voltage
+    device_class: voltage
+    unit_of_measurement: "V"
+    accuracy_decimals: 2
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: 15s
+    attenuation: auto
+    filters:
+      - multiply: 2
+      - calibrate_linear:
+          - 0.0 -> 0.0
+          - 4.58 -> 4.20
+      - exponential_moving_average:
+          alpha: 0.2
+          send_every: 2
+      - delta: 0.002
+    on_value:
+      then:
+        - sensor.template.publish:
+            id: battery_percent
+            state: !lambda "return x;"
+        - lambda: |-
+            if (id(myDisplay).is_ready()) id(myDisplay).update();
+
+  - platform: template
+    name: Battery
+    id: battery_percent
+    device_class: battery
+    unit_of_measurement: "%"
+    accuracy_decimals: 0
+    state_class: measurement
+    entity_category: diagnostic
+    update_interval: never
+    filters:
+      - calibrate_polynomial:
+          degree: 3
+          datapoints:
+            - 4.20 -> 100.0
+            - 4.13 -> 97.1
+            - 4.10 -> 94.2
+            - 4.07 -> 88.4
+            - 4.05 -> 82.7
+            - 4.04 -> 76.9
+            - 4.04 -> 71.1
+            - 4.01 -> 65.3
+            - 3.99 -> 59.5
+            - 3.95 -> 53.8
+            - 3.93 -> 48.0
+            - 3.91 -> 42.2
+            - 3.88 -> 36.4
+            - 3.86 -> 30.6
+            - 3.84 -> 24.9
+            - 3.82 -> 19.1
+            - 3.76 -> 13.3
+            - 3.73 -> 10.4
+            - 3.70 -> 7.5
+            - 3.64 -> 4.6
+            - 3.50 -> 1.7
+            - 3.00 -> 0.0
+      - lambda: return clamp(x, 0.0f, 100.0f);
+
+  - platform: wifi_signal
+    name: WiFi Signal
+    id: wifi_signal_dbm
+    update_interval: 15s
+    on_value:
+      then:
+        - lambda: |-
+            if (id(myDisplay).is_ready()) id(myDisplay).update();
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: GPIO21
+      mode:
+        input: true
+    id: usb_power_detect
+    name: USB Power
+    device_class: power
+    entity_category: diagnostic
+    on_press:
+      - logger.log: "USB power detected"
+      - lambda: |-
+          if (id(myDisplay).is_ready()) id(myDisplay).update();
+    on_release:
+      - logger.log: "USB power removed"
+      - lambda: |-
+          if (id(myDisplay).is_ready()) id(myDisplay).update();
+
+  - platform: gpio
+    pin:
+      number: GPIO10
+      mode:
+        input: true
+        pullup: true
+    id: jack_detect
+    name: Jack Detect
+    internal: true
+    on_press:
+      - script.execute: jack_detect_high
+    on_release:
+      - script.execute: jack_detect_low
+
+  - platform: gpio
+    pin:
+      number: GPIO48
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    id: click_vol
+    name: Mute
+    on_press:
+      then:
+        - script.execute: mute_unmute
+
+  - platform: gpio
+    pin:
+      number: GPIO45
+      inverted: true
+      mode:
+        input: true
+        pullup: true
+    id: click_sta
+    name: Assist
+    on_click:
+      - min_length: 50ms
+        max_length: 2s
+        then:
+          - if:
+              condition:
+                lambda: |-
+                  return id(music_active) || id(assist_return_to_ma) ||
+                      id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
+              then:
+                - script.execute: temporary_assist
+              else:
+                - script.execute: go_assist
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 4.2)
+
+  - platform: template
+    name: "Radio 1"
+    id: btn_1
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - min_length: 50ms
+        max_length: 1s
+        then:
+          - script.execute:
+              id: play_radio_preset
+              station: !lambda return id(radio_station_1).state;
+      - min_length: 1800ms
+        max_length: 8s
+        then:
+          - script.execute:
+              id: save_radio_preset
+              preset: 1
+
+  - platform: template
+    name: "Radio 2"
+    id: btn_2
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - min_length: 50ms
+        max_length: 1s
+        then:
+          - script.execute:
+              id: play_radio_preset
+              station: !lambda return id(radio_station_2).state;
+      - min_length: 1800ms
+        max_length: 8s
+        then:
+          - script.execute:
+              id: save_radio_preset
+              preset: 2
+
+  - platform: template
+    name: "Radio 3"
+    id: btn_3
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - min_length: 50ms
+        max_length: 1s
+        then:
+          - script.execute:
+              id: play_radio_preset
+              station: !lambda return id(radio_station_3).state;
+      - min_length: 1800ms
+        max_length: 8s
+        then:
+          - script.execute:
+              id: save_radio_preset
+              preset: 3
+
+  - platform: template
+    name: "Radio 4"
+    id: btn_confirm
+    filters:
+      - delayed_on_off: 30ms
+    on_click:
+      - min_length: 50ms
+        max_length: 1s
+        then:
+          - script.execute:
+              id: toggle_local_radio
+              # station_url: !lambda return id(radio_station_4).state;
+
+              
+select:
+  - platform: template
+    name: "Wake word sensitivity"
+    optimistic: true
+    initial_option: Slightly sensitive
+    restore_value: true
+    entity_category: config
+    options:
+      - Slightly sensitive
+      - Moderately sensitive
+      - Very sensitive
+    on_value:
+      lambda: |-
+        if (x == "Slightly sensitive") {
+          id(okay_nabu).set_probability_cutoff(217);
+          id(hey_jarvis).set_probability_cutoff(247);
+          id(hey_mycroft).set_probability_cutoff(253);
+        } else if (x == "Moderately sensitive") {
+          id(okay_nabu).set_probability_cutoff(176);
+          id(hey_jarvis).set_probability_cutoff(235);
+          id(hey_mycroft).set_probability_cutoff(242);
+        } else if (x == "Very sensitive") {
+          id(okay_nabu).set_probability_cutoff(143);
+          id(hey_jarvis).set_probability_cutoff(212);
+          id(hey_mycroft).set_probability_cutoff(237);
+        }
+
+  - platform: template
+    id: local_radio_select
+    name: "Web Radio Station"
+    icon: mdi:radio
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    initial_option: "1 - France Info"
+    options:
+      - "1 - France Info"
+      - "2 - France Inter"
+      - "3 - France Musique"
+      - "4 - FIP"
+      - "5 - Nostalgie"
+      - "6 - Radio Classique"
+    on_value:
+      then:
+        - light.turn_on:
+            id: screen_backlight
+            brightness: 100%
+        - lambda: |-
+            id(lightTO) = 0;
+            std::string label = x;
+            size_t dash = label.find(" - ");
+            if (dash != std::string::npos) {
+              label = label.substr(dash + 3);
+            }
+            id(preset_message) = label;
+        - script.execute: show_preset_feedback
+        - if:
+            condition:
+              lambda: 'return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;'
+            then:
+              - script.execute: debounced_switch_local_radio
+
+                
+text_sensor:
+
+  - platform: sendspin
+    id: ma_media_title
+    type: title
+    internal: true
+    on_value:
+      - script.execute: schedule_music_refresh
+
+  - platform: sendspin
+    id: ma_media_artist
+    type: artist
+    internal: true
+    on_value:
+      - script.execute: schedule_music_refresh
+
+  - platform: sendspin
+    id: ma_media_album
+    type: album
+    internal: true
+    on_value:
+      - script.execute: schedule_music_refresh
+
+  - id: text_request
+    platform: template
+    on_value:
+      lambda: |-
+        std::string s = x;
+        if (s.size() > 40) {
+          size_t end = 39;
+          while (end > 0 && (static_cast<unsigned char>(s[end]) & 0xC0) == 0x80) --end;
+          id(text_request).publish_state(s.substr(0, end) + "...");
+        }
+
+  - id: text_response
+    platform: template
+    on_value:
+      lambda: |-
+        std::string s = x;
+        if (s.size() > 32) {
+          size_t end = 31;
+          while (end > 0 && (static_cast<unsigned char>(s[end]) & 0xC0) == 0x80) --end;
+          id(text_response).publish_state(s.substr(0, end) + "...");
+        }
+
+  - platform: template
+    name: "ma_player_entity_id"
+    lambda: return id(ma_player_entity_id);
+    update_interval: 10s
+
+  - platform: homeassistant
+    id: ha_weather_condition
+    entity_id: *weather_entity
+    internal: true
+    on_value:
+      - script.execute: schedule_music_refresh
+
+
+text:
+  - platform: template
+    id: radio_station_1
+    name: "Station button 1"
+    icon: mdi:radio
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_length: 0
+    max_length: 255
+    mode: text
+  - platform: template
+    id: radio_station_2
+    name: "Station button 2"
+    icon: mdi:radio
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_length: 0
+    max_length: 255
+    mode: text
+  - platform: template
+    id: radio_station_3
+    name: "Station button 3"
+    icon: mdi:radio
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_length: 0
+    max_length: 255
+    mode: text
+  - platform: template
+    id: radio_station_4
+    name: "Station button 4"
+    icon: mdi:radio
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_length: 0
+    max_length: 255
+    mode: text
+  - platform: template
+    id: radio_player
+    mode: TEXT
+    name: "set_ma_player_entity_id"
+    optimistic: true
+    on_value:
+      then:
+        - lambda: 'id(ma_player_entity_id) = x;'
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.1)
+
+script:
+
+  - id: draw_weather_icon
+    parameters:
+      it: display::Display*
+      cx: int
+      cy: int
+      cond: string
+    then:
+      - lambda: |-
+          auto draw_sun = [&](int x, int y, int r) {
+            it->filled_circle(x, y, r, id(amber));
+            for (int d = 0; d < 360; d += 45) {
+              float rad = d * 3.14159265f / 180.0f;
+              it->line(x + cosf(rad) * (r + 2), y + sinf(rad) * (r + 2),
+                       x + cosf(rad) * (r + 5), y + sinf(rad) * (r + 5), id(amber));
+            }
+          };
+          auto draw_cloud = [&](int x, int y, Color col) {
+            it->filled_circle(x - 4, y + 1, 5, col);
+            it->filled_circle(x + 2, y - 1, 6, col);
+            it->filled_circle(x + 7, y + 2, 4, col);
+            it->filled_rectangle(x - 4, y + 1, 12, 6, col);
+          };
+
+          if (cond == "sunny") {
+            draw_sun(cx, cy, 5);
+          } else if (cond == "clear-night") {
+            it->filled_circle(cx, cy, 6, id(ma_accent));
+            it->filled_circle(cx + 3, cy - 2, 5, id(ma_header));
+          } else if (cond == "partlycloudy") {
+            draw_sun(cx - 4, cy - 3, 4);
+            draw_cloud(cx + 1, cy + 2, id(ma_text));
+          } else if (cond == "cloudy" || cond == "fog") {
+            draw_cloud(cx, cy, id(ma_text_muted));
+          } else if (cond == "rainy" || cond == "pouring") {
+            draw_cloud(cx, cy - 2, id(ma_text_muted));
+            it->line(cx - 3, cy + 5, cx - 5, cy + 9, id(light_blue));
+            it->line(cx + 1, cy + 5, cx - 1, cy + 9, id(light_blue));
+            it->line(cx + 5, cy + 5, cx + 3, cy + 9, id(light_blue));
+          } else if (cond == "lightning" || cond == "lightning-rainy") {
+            draw_cloud(cx, cy - 2, id(ma_text_muted));
+            it->line(cx + 1, cy + 3, cx - 2, cy + 7, id(amber));
+            it->line(cx - 2, cy + 7, cx + 2, cy + 7, id(amber));
+            it->line(cx + 2, cy + 7, cx - 1, cy + 11, id(amber));
+          } else if (cond == "snowy" || cond == "snowy-rainy" || cond == "hail") {
+            draw_cloud(cx, cy - 2, id(ma_text));
+            it->draw_pixel_at(cx - 3, cy + 7, id(white));
+            it->draw_pixel_at(cx + 1, cy + 8, id(white));
+            it->draw_pixel_at(cx + 5, cy + 7, id(white));
+          } else if (cond == "windy" || cond == "windy-variant") {
+            it->line(cx - 7, cy - 3, cx + 5, cy - 3, id(ma_text_muted));
+            it->line(cx - 5, cy + 1, cx + 8, cy + 1, id(ma_text_muted));
+            it->line(cx - 7, cy + 5, cx + 3, cy + 5, id(ma_text_muted));
+          } else {
+            // Repli par défaut (nuage simple)
+            draw_cloud(cx, cy, id(ma_text_muted));
+          }
+
+  - id: draw_status_overlay
+    parameters:
+      it: display::Display*
+      show_battery: bool
+      show_wifi: bool
+      show_speaker: bool
+    then:
+      - lambda: |-
+          const int w = it->get_width();
+          const int h = it->get_height();
+
+          // 1. Barre de volume temporaire
+          if (id(volume_display_active) && w > 6 && h > 18) {
+            const float vol = (id(mute) || id(auto_mute_active)) ? 0.0f : clamp(id(Vol), 0.0f, 1.0f);
+            const int gauge_h = 18;
+            const int margin = 3;
+            const int gauge_y = h - gauge_h;
+            const int inner_w = w - margin * 2;
+            const int inner_h = gauge_h - margin * 2;
+            const int filled_w = clamp(static_cast<int>(inner_w * vol + 0.5f), 0, inner_w);
+            it->filled_rectangle(0, gauge_y, w, gauge_h, id(bg_charcoal));
+            if (filled_w > 0) {
+              it->filled_rectangle(margin, gauge_y + margin, filled_w, inner_h, id(lime));
+            }
+            it->rectangle(margin, gauge_y + margin, inner_w, inner_h, id(black));
+          }
+
+          // 2. Icône Haut-parleur
+          if (show_speaker && w > 28) {
+            const int x = 8, y = 6, iw = 20, ih = 20;
+            auto col = (id(mute) && !id(auto_mute_active)) ? id(red) : id(green);
+            for (int t = 1; t <= 2; t++) {
+              it->rectangle(x - t, y + ih / 4 - t, iw, ih / 2 + t * 2, id(black));
+              it->triangle(x, y + ih / 2, x + iw + t, y - t, x + iw + t, y + ih + t, id(black));
+            }
+            it->filled_rectangle(x, y + ih / 4, iw, ih / 2, col);
+            it->filled_triangle(x, y + ih / 2, x + iw, y, x + iw, y + ih, col);
+            it->line(x + iw / 2, y + ih / 4, x + iw / 2, y + ih * 3 / 4, id(black));
+          }
+
+          // 3. Icône Batterie
+          const int bat_w = 34, bat_h = 14, cap_w = 4, margin = 4;
+          const int bat_x = w - bat_w - cap_w - margin;
+          const int bat_y = margin + 2;
+          if (show_battery && w > bat_w + cap_w + margin * 2) {
+            const int cap_h = bat_h / 2;
+            it->rectangle(bat_x, bat_y, bat_w, bat_h, id(black));
+            it->filled_rectangle(bat_x + bat_w, bat_y + (bat_h - cap_h) / 2, cap_w, cap_h, id(black));
+            const int inner_w = bat_w - 4, inner_h = bat_h - 4;
+            it->filled_rectangle(bat_x + 2, bat_y + 2, inner_w, inner_h, id(bg_charcoal));
+
+            if (id(battery_percent).has_state()) {
+              const float pct = clamp(id(battery_percent).state, 0.0f, 100.0f);
+              auto col = pct < 20.0f ? id(red) : (pct < 50.0f ? id(amber) : id(lime));
+              const int fill_w = clamp(static_cast<int>(inner_w * (pct / 100.0f) + 0.5f), 0, inner_w);
+              if (fill_w > 0) it->filled_rectangle(bat_x + 2, bat_y + 2, fill_w, inner_h, col);
+
+              const int cx = bat_x + bat_w / 2;
+              const int cy = bat_y + bat_h / 2 + 1;
+              if (id(usb_power_detect).state) {
+                it->filled_rectangle(bat_x + 1, bat_y + 1, bat_w - 2, bat_h - 2, id(light_green));
+                const int bw = 24, bh = 8, left = cx - bw / 2, top = cy - bh / 2 - 1;
+                it->filled_triangle(left + bw / 2, top, left + bw, top + bh / 2, left + bw / 2, top + bh / 2, id(black));
+                it->filled_triangle(left + bw / 2, top + bh, left, top + bh / 2, left + bw / 2, top + bh / 2, id(black));
+              } else {
+                it->printf(cx, cy, id(font_battery_small), id(black), TextAlign::CENTER, "%.0f%%", pct);
+              }
+            }
+          }
+
+          // 4. Icône Wi-Fi
+          if (show_wifi && id(wifi_signal_dbm).has_state()) {
+            const float rssi = id(wifi_signal_dbm).state;
+            auto col = rssi > -60.0f ? id(lime) : (rssi > -75.0f ? id(amber) : id(red));
+            const int bars = rssi > -60.0f ? 3 : (rssi > -75.0f ? 2 : 1);
+            const int dot_x = bat_x - 21;
+            const int dot_y = bat_y + bat_h - 1;
+            it->filled_rectangle(dot_x - 1, dot_y - 1, 3, 3, col);
+
+            const float pi = 3.14159265f;
+            for (int b = 1; b <= bars; b++) {
+              const int radius = 1 + b * 3;
+              for (int t = 0; t < 2; t++) {
+                const int r = radius - t;
+                bool has_prev = false;
+                int prev_x = 0, prev_y = 0;
+                for (float deg = 200.0f; deg <= 340.0f; deg += 5.0f) {
+                  const float rad = deg * pi / 180.0f;
+                  const int px = dot_x + static_cast<int>(roundf(cosf(rad) * r));
+                  const int py = dot_y + static_cast<int>(roundf(sinf(rad) * r));
+                  if (has_prev) it->line(prev_x, prev_y, px, py, col);
+                  prev_x = px; prev_y = py; has_prev = true;
+                }
+              }
+            }
+          }
+
+  - id: show_preset_feedback
+    mode: restart
+    then:
+      - light.turn_on:
+          id: screen_backlight
+          brightness: 100%
+      - lambda: |-
+          id(lightTO) = 0;
+          if (id(myDisplay).is_ready()) {
+            id(myDisplay).show_page(presetP);
+            id(myDisplay).update();
+          }
+      - delay: 2500ms
+      - script.execute: reset_display
+
+  - id: play_france_info
+    mode: restart
+    then:
+      - script.execute:
+          id: play_radio_preset
+          station: library://radio/1
+
+  - id: play_france_inter
+    mode: restart
+    then:
+      - script.execute:
+          id: play_radio_preset
+          station: library://radio/2
+
+  - id: play_france_musique
+    mode: restart
+    then:
+      - script.execute:
+          id: play_radio_preset
+          station: library://radio/4
+
+  - id: play_nostalgie
+    mode: restart
+    then:
+      - script.execute:
+          id: play_radio_preset
+          station: library://radio/7
+
+  - id: play_radio_classique
+    mode: restart
+    then:
+      - script.execute:
+          id: play_radio_preset
+          station: library://radio/8
+
+  - id: preview_selected_station
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(local_radio_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING;'
+          then:
+            - lambda: |-
+                std::string label = id(local_radio_select).current_option();
+                // Retire le préfixe "X - " pour un affichage plus propre
+                size_t dash = label.find(" - ");
+                if (dash != std::string::npos) {
+                  label = label.substr(dash + 3);
+                }
+                id(preset_message) = label;
+            - script.execute: show_preset_feedback
+
+  - id: debounced_switch_local_radio
+    mode: restart
+    then:
+      - delay: 600ms
+      - if:
+          condition:
+            lambda: 'return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;'
+          then:
+            - media_player.stop:
+                id: local_radio_player
+                announcement: false
+            - delay: 250ms
+            - script.execute: toggle_local_radio
+              
+  - id: play_radio_preset
+    mode: restart
+    parameters:
+      station: string
+    then:
+      - lambda: 'ESP_LOGI("play_radio_preset", "La station est : %s", station.c_str());'
+      - if:
+          condition:
+            lambda: |-
+              return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                     id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PAUSED;
+          then:
+            - media_player.stop:
+                id: local_radio_player
+                announcement: false
+            - delay: 200ms
+      - if:
+          condition:
+            lambda: return station.find_first_not_of(" \t\r\n") != std::string::npos;
+          then:
+            - homeassistant.action:
+                action: media_player.play_media
+                data:
+                  media_content_type: radio
+                  enqueue: replace
+                data_template:
+                  entity_id: |-
+                    {% set configured = player_entity | trim %} {% if configured and states(configured) not in ['unknown', 'unavailable']
+                          and state_attr(configured, 'mass_player_type') is not none %}
+                      {{ configured }}
+                    {% else %}
+                      {% set ns = namespace(entity_id='') %}
+                      {% for player in states.media_player %}
+                        {% set label = (player.entity_id ~ ' ' ~ player.name) | lower %}
+                        {% if ns.entity_id == '' and player.attributes.mass_player_type is defined
+                              and 'radio' in label %}
+                          {% set ns.entity_id = player.entity_id %}
+                        {% endif %}
+                      {% endfor %}
+                      {{ ns.entity_id }}
+                    {% endif %}
+                  media_content_id: '{{ station_name }}'
+                variables:
+                  station_name: !lambda return station;
+                  player_entity: !lambda return id(ma_player_entity_id);
+                on_error:
+                  - lambda: |-
+                      id(preset_message) = "PLAY FAILED";
+                      ESP_LOGW("radio_preset", "Unable to play station: %s", error.c_str());
+                  - script.execute: show_preset_feedback
+          else:
+            - lambda: id(preset_message) = "NO RADIO";
+            - script.execute: show_preset_feedback
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.1.1)
+
+  - id: save_radio_preset
+    mode: restart
+    parameters:
+      preset: int
+    then:
+      - lambda: 'ESP_LOGI("play_radio_preset", "preset est : %u", preset);'
+      - light.turn_on:
+          id: screen_backlight
+          brightness: 100%
+      - homeassistant.action:
+          action: music_assistant.get_queue
+          data_template:
+            entity_id: |-
+              {% set configured = player_entity | trim %} {% if configured and states(configured) not in ['unknown', 'unavailable']
+                    and state_attr(configured, 'mass_player_type') is not none %}
+                {{ configured }}
+              {% else %}
+                {% set ns = namespace(named='', metadata='') %}
+                {% for player in states.media_player %}
+                  {% if player.attributes.mass_player_type is defined
+                        and player.state not in ['unknown', 'unavailable'] %}
+                    {% set label = (player.entity_id ~ ' ' ~ player.name) | lower %}
+                    {% set same_album = current_album | length > 0
+                          and player.attributes.media_album_name | default('') == current_album %}
+                    {% set same_title = current_title | length > 0
+                          and player.attributes.media_title | default('') == current_title %}
+                    {% if ns.named == '' and 'radio' in label %}
+                      {% set ns.named = player.entity_id %}
+                    {% endif %}
+                    {% if ns.metadata == '' and (same_album or same_title) %}
+                      {% set ns.metadata = player.entity_id %}
+                    {% endif %}
+                  {% endif %}
+                {% endfor %}
+                {{ ns.named if ns.named else ns.metadata }}
+              {% endif %}
+          variables:
+            player_entity: !lambda return id(ma_player_entity_id);
+            current_title: !lambda return id(ma_media_title).state;
+            current_album: !lambda return id(ma_media_album).state;
+          capture_response: true
+          response_template: '{% set entity_id = response.keys() | list | first | default('''') %}{% set item = response[entity_id].get(''current_item'') if entity_id else none %}{% set media_item = item.get(''media_item'') if item else none %}{% set uri = state_attr(entity_id, ''media_content_id'') or (media_item.get(''uri'', '''') if media_item else '''') %}{{ entity_id }}|@|{{ uri }}'
+          on_success:
+            - lambda: |-
+                const std::string payload = response["response"].as<std::string>();
+                const size_t separator = payload.find("|@|");
+                const std::string entity_id = separator == std::string::npos
+                    ? "" : payload.substr(0, separator);
+                const std::string uri = separator == std::string::npos
+                    ? "" : payload.substr(separator + 3);
+                const bool valid = !entity_id.empty() && !uri.empty() &&
+                                   uri.find("://") != std::string::npos;
+                if (!valid) {
+                  id(preset_message) = "NO RADIO";
+                  ESP_LOGW("radio_preset", "No usable station in MA response: %s", payload.c_str());
+                  return;
+                }
+                if (uri.size() > 255) {
+                  id(preset_message) = "URI TOO LONG";
+                  ESP_LOGW("radio_preset", "Station URI exceeds the 255-byte preset limit");
+                  return;
+                }
+
+                text::Text *target = nullptr;
+                if (preset == 1) target = id(radio_station_1);
+                else if (preset == 2) target = id(radio_station_2);
+                else if (preset == 3) target = id(radio_station_3);
+                else if (preset == 4) target = id(radio_station_4);
+                if (target == nullptr) return;
+
+                id(ma_player_entity_id) = entity_id;
+                auto call = target->make_call();
+                call.set_value(uri);
+                call.perform();
+                id(preset_message) = "MEMO " + std::to_string(preset) + " OK";
+                ESP_LOGI("radio_preset", "Station stored on button %d via %s",
+                         preset, entity_id.c_str());
+            - script.execute: show_preset_feedback
+          on_error:
+            - lambda: |-
+                id(preset_message) = "NO RADIO";
+                ESP_LOGW("radio_preset", "Unable to read MA queue: %s", error.c_str());
+            - script.execute: show_preset_feedback
+
+  - id: schedule_music_refresh
+    mode: restart
+    then:
+      - delay: 200ms
+      - if:
+          condition:
+            lambda: 'return id(music_active) && !id(assist_return_to_ma) && id(myDisplay).is_ready();'
+          then:
+            - component.update: myDisplay
+
+  - id: stop_and_restart_local_radio
+    mode: restart
+    then:
+      - media_player.stop:
+          id: local_radio_player
+          announcement: false
+      - delay: 250ms
+      - script.execute: toggle_local_radio
+
+  - id: toggle_local_radio
+    mode: restart
+    then:
+      - light.turn_on:
+          id: screen_backlight
+          brightness: 100%
+      - lambda: 'id(lightTO) = 0;'
+      - if:
+          condition:
+            lambda: |-
+              return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                     id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PAUSED;
+          then:
+            - logger.log: "Arrêt de la radio web locale"
+            - media_player.stop:
+                id: local_radio_player
+                announcement: false
+            - delay: 200ms
+            - lambda: |-
+                id(music_active) = (id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING);
+                id(preset_message) = "STOP RADIO";
+            - script.execute: show_preset_feedback
+          else:
+            - if:
+                condition:
+                  lambda: |-
+                    return id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                           id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
+                then:
+                  - media_player.pause: sendspin_media_player
+                  - media_player.stop: music_source_player
+                  - wait_until:
+                      condition:
+                        lambda: 'return id(music_source_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING;'
+                      timeout: 4s
+                  - delay: 150ms
+            - media_player.stop:
+                id: local_radio_player
+                announcement: false
+            - delay: 150ms
+            - micro_wake_word.stop:
+            - script.execute: apply_local_codec_volume
+            - media_player.volume_set:
+                id: local_radio_player
+                volume: !lambda 'return id(Vol);'
+            - media_player.play_media:
+                id: local_radio_player
+                announcement: false
+                media_url: !lambda |-
+                  auto idx = id(local_radio_select).active_index();
+                  int i = idx.has_value() ? idx.value() : 0;
+                  switch (i) {
+                    case 0: return std::string("http://direct.franceinfo.fr/live/franceinfo-midfi.mp3");
+                    case 1: return std::string("http://direct.franceinter.fr/live/franceinter-midfi.mp3");
+                    case 2: return std::string("https://direct.francemusique.fr/live/francemusique-midfi.mp3");
+                    case 3: return std::string("http://direct.fipradio.fr/live/fip-midfi.mp3");
+                    case 4: return std::string("https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxradios");
+                    case 5: return std::string("http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3");
+                    default: return std::string("http://direct.franceinfo.fr/live/franceinfo-midfi.mp3");
+                  }
+            - delay: 100ms
+            - media_player.volume_set:
+                id: local_radio_player
+                volume: !lambda 'return id(Vol);'
+            - speaker.volume_set:
+                id: radio_speaker
+                volume: !lambda 'return id(Vol);'
+            - lambda: |-
+                auto idx = id(local_radio_select).active_index();
+                int i = idx.has_value() ? idx.value() : 0;
+                switch (i) {
+                  case 0: id(preset_message) = "FRANCE INFO"; break;
+                  case 1: id(preset_message) = "FRANCE INTER"; break;
+                  case 2: id(preset_message) = "FRANCE MUSIQUE"; break;
+                  case 3: id(preset_message) = "FIP"; break;
+                  case 4: id(preset_message) = "NOSTALGIE"; break;
+                  case 5: id(preset_message) = "RADIO CLASSIQUE"; break;
+                  default: id(preset_message) = "WEB RADIO"; break;
+                }
+            - script.execute: show_preset_feedback
+              
+  - id: temporary_assist
+    mode: single
+    then:
+      - if:
+          condition:
+            not:
+              voice_assistant.connected:
+          then:
+            - lambda: 'id(preset_message) = "HA OFFLINE";'
+            - script.execute: show_preset_feedback
+            - script.stop: temporary_assist
+      - if:
+          condition:
+            lambda: 'return id(assist_return_to_ma);'
+          then:
+            - voice_assistant.stop:
+          else:
+            - lambda: |-
+                id(assist_return_to_ma) = true;
+                id(assist_left_ma_group) = false;
+                id(phase) = 3;
+            - media_player.pause: sendspin_media_player
+            - wait_until:
+                condition:
+                  lambda: |-
+                    return id(sendspin_media_player).state !=
+                        media_player::MEDIA_PLAYER_STATE_PLAYING;
+                timeout: 8s
+            - if:
+                condition:
+                  lambda: |-
+                    return id(sendspin_media_player).state ==
+                        media_player::MEDIA_PLAYER_STATE_PLAYING;
+                then:
+                  - logger.log:
+                      level: ERROR
+                      format: "Assist cancelled: Sendspin group did not pause"
+                  - lambda: 'id(assist_return_to_ma) = false;'
+                  - script.execute: reset_display
+                else:
+                  - wait_until:
+                      condition:
+                        lambda: 'return !id(music_active) && id(radio_speaker).is_stopped();'
+                      timeout: 6s
+                  - if:
+                      condition:
+                        lambda: 'return id(music_active) || !id(radio_speaker).is_stopped();'
+                      then:
+                        - lambda: 'id(assist_left_ma_group) = true;'
+                        - media_player.stop: music_source_player
+                        - wait_until:
+                            condition:
+                              lambda: 'return !id(music_active) && id(radio_speaker).is_stopped();'
+                            timeout: 6s
+                  - if:
+                      condition:
+                        lambda: 'return id(music_active) || !id(radio_speaker).is_stopped();'
+                      then:
+                        - logger.log:
+                            level: ERROR
+                            format: "Assist cancelled: Radio did not release the I2S bus"
+                        - lambda: 'id(assist_return_to_ma) = false;'
+                        - if:
+                            condition:
+                              lambda: 'return id(assist_left_ma_group);'
+                            then:
+                              - sendspin.switch: sendspin_hub
+                        - media_player.play: sendspin_media_player
+                        - script.execute: reset_display
+                      else:
+                        - light.turn_on: screen_backlight
+                        - script.execute: reset_display
+                        - voice_assistant.start:
+                            silence_detection: true
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.1.2)
+
+  - id: finish_temporary_assist
+    mode: single
+    then:
+      - wait_until:
+          condition:
+            not:
+              voice_assistant.is_running:
+          timeout: 10s
+      - if:
+          condition:
+            lambda: 'return id(assist_return_to_ma);'
+          then:
+            - lambda: |-
+                id(assist_return_to_ma) = false;
+                id(phase) = 1;
+            - micro_wake_word.stop:
+            - wait_until:
+                condition:
+                  not:
+                    micro_wake_word.is_running:
+                timeout: 3s
+            - delay: 200ms
+            - if:
+                condition:
+                  lambda: 'return id(assist_left_ma_group);'
+                then:
+                  - sendspin.switch: sendspin_hub
+                  - delay: 300ms
+            - media_player.play: sendspin_media_player
+            - wait_until:
+                condition:
+                  lambda: 'return id(music_active);'
+                timeout: 8s
+            - lambda: 'id(assist_left_ma_group) = false;'
+            - script.execute: reset_display
+
+  - id: go_assist
+    then:
+      - if:
+          condition:
+            not:
+              voice_assistant.connected:
+          then:
+            - lambda: 'id(preset_message) = "HA OFFLINE";'
+            - script.execute: show_preset_feedback
+            - script.stop: go_assist
+      - light.turn_on: screen_backlight
+      - lambda: 'id(lightTO) = 0;'
+      - if:
+          condition:
+            lambda: 'return (id(phase) == 3 || id(phase) == 4);'
+          then:
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
+                  - wait_until:
+                      not:
+                        voice_assistant.is_running:
+            - if:
+                condition:
+                  media_player.is_announcing:
+                    id: speaker_media_player
+                then:
+                  - media_player.stop:
+                      id: speaker_media_player
+                      announcement: true
+            - if:
+                condition:
+                  media_player.is_playing:
+                    id: speaker_media_player
+                then:
+                  - media_player.stop:
+                      id: speaker_media_player
+            - micro_wake_word.start:
+            - lambda: |-
+                id(mute) = false;
+                id(auto_mute_active) = false;
+                id(phase) = 1;
+            - script.execute: reset_display
+          else:
+            - if:
+                condition:
+                  media_player.is_announcing:
+                    id: speaker_media_player
+                then:
+                  - media_player.stop:
+                      id: speaker_media_player
+                      announcement: true
+            - if:
+                condition:
+                  media_player.is_playing:
+                    id: speaker_media_player
+                then:
+                  - media_player.stop:
+                      id: speaker_media_player
+            - if:
+                condition:
+                  voice_assistant.is_running:
+                then:
+                  - voice_assistant.stop:
+                  - wait_until:
+                      not:
+                        voice_assistant.is_running:
+            - micro_wake_word.stop:
+            - lambda: 'id(phase) = 3;'
+            - script.execute: reset_display
+            - voice_assistant.start:
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.2.1)
+
+  - id: mute_unmute
+    then:
+      - light.turn_on: screen_backlight
+      - lambda: 'id(lightTO) = 0;'
+      - if:
+          condition:
+            lambda: |-
+              return !id(assist_return_to_ma) &&
+                  (id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                   id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING);
+          then:
+            - if:
+                condition:
+                  media_player.is_muted: sendspin_media_player
+                then:
+                  - media_player.unmute: sendspin_media_player
+                else:
+                  - media_player.mute: sendspin_media_player
+            - script.execute: schedule_music_refresh
+          else:
+            - if:
+                condition:
+                  lambda: 'return id(mute);'
+                then:
+                  - logger.log: "unmute!"
+                  - script.execute: apply_local_codec_volume
+                  - media_player.volume_set:
+                      id: speaker_media_player
+                      volume: !lambda 'return id(Vol);'
+                  - media_player.volume_set:
+                      id: local_radio_player
+                      volume: !lambda 'return id(Vol);'
+                  - lambda: |-
+                      id(mute) = false;
+                      id(auto_mute_active) = false;
+                else:
+                  - logger.log: "mute!"
+                  - media_player.volume_set:
+                      id: speaker_media_player
+                      volume: '0'
+                  - media_player.volume_set:
+                      id: local_radio_player
+                      volume: '0'
+                  - lambda: |-
+                      id(mute) = true;
+                      id(auto_mute_active) = false;
+      - lambda: |-
+          id(volume_display_active) = true;
+          id(volume_display_timer) = 0;
+      - script.execute: schedule_volume_update
+      - script.execute: reset_display
+
+  - id: jack_detect_high
+    then:
+      - logger.log: "Jack detect high -> route to speaker"
+      - output.turn_off: dac_mute
+      - lambda: |-
+          id(my_es8388).write_byte(0x1D, 0x20);
+          id(my_es8388).write_byte(0x1C, 0x10);
+          id(my_es8388).write_byte(0x04, 0x30);
+
+  - id: jack_detect_low
+    then:
+      - logger.log: "Jack detect low -> route to line out"
+      - output.turn_on: dac_mute
+      - lambda: |-
+          id(my_es8388).write_byte(0x1D, 0x00);
+          id(my_es8388).write_byte(0x1C, 0x00);
+          id(my_es8388).write_byte(0x04, 0x0C);
+
+  - id: adjust_volume
+    parameters:
+      delta: float
+    then:
+      - light.turn_on: screen_backlight
+      - if:
+          condition:
+            lambda: |-
+              return !id(assist_return_to_ma) &&
+                  (id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                   id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING);
+          then:
+            - media_player.volume_set:
+                id: sendspin_media_player
+                volume: !lambda |-
+                  const float reported = id(sendspin_media_player).volume;
+                  int current = std::isfinite(reported)
+                      ? static_cast<int>(std::roundf(clamp(reported, 0.0f, 1.0f) * 100.0f))
+                      : 0;
+                  const uint32_t now = millis();
+                  if (id(ma_volume_target_percent) >= 0 &&
+                      now - id(ma_volume_last_command_ms) < 700) {
+                    current = id(ma_volume_target_percent);
+                  }
+                  int step = static_cast<int>(std::roundf(delta *
+                      (current <= 20 ? 20.0f : 100.0f)));
+                  int next = current + step;
+                  if (step < 0 && current > 20 && next < 20)
+                    next = 20;
+                  next = clamp(next, 0, 100);
+                  id(ma_volume_target_percent) = next;
+                  id(ma_volume_last_command_ms) = now;
+                  return next / 100.0f;
+            - media_player.unmute: sendspin_media_player
+            - lambda: 'id(lightTO) = 0;'
+            - script.execute: schedule_music_refresh
+            - script.stop: adjust_volume
+      - lambda: |-
+          id(lightTO) = 0;
+          float scale = 1.0f;
+          if (id(Vol) <= 0.20f) scale = 0.20f;
+          else if (id(Vol) < 0.3f) scale = 0.50f;
+          else if (id(Vol) < 0.5f) scale = 0.60f;
+
+          const float current = id(Vol);
+          id(Vol) += delta * scale;
+          if (delta < 0.0f && current > 0.20f && id(Vol) < 0.20f)
+            id(Vol) = 0.20f;
+          id(Vol) = clamp(id(Vol), 0.0f, 1.0f);
+          id(volume_display_active) = true;
+          id(volume_display_timer) = 0;
+          id(mute) = false;
+      - script.execute: apply_local_codec_volume
+      - media_player.volume_set:
+          id: speaker_media_player
+          volume: !lambda return id(Vol);
+      - media_player.volume_set:
+          id: local_radio_player
+          volume: !lambda return id(Vol);
+      - script.execute: schedule_volume_update
+      - script.execute: reset_display
+
+  - id: schedule_volume_update
+    then:
+      - lambda: |-
+          if (id(volume_display_active) && id(myDisplay).is_ready()) {
+            id(myDisplay).update();
+          }
+
+  - id: apply_local_codec_volume
+    then:
+      - lambda: |-
+          const int percent = static_cast<int>(std::roundf(clamp(id(Vol), 0.0f, 1.0f) * 100.0f));
+          const uint8_t codec_volume = id(Vol) < 0.10f ? 23 + percent : 33;
+          for (uint8_t reg = 0x2E; reg <= 0x31; reg++) {
+            id(my_es8388).write_byte(reg, codec_volume);
+          }
+
+  - id: reset_display
+    then:
+      - logger.log: "===> reset_display"
+      - lambda: |-
+          id(lightTO) = 0;
+          if ((id(music_active) ||
+               id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING) &&
+              !id(assist_return_to_ma)) {
+            id(myDisplay).show_page(musicP);
+            id(myDisplay).update();
+            return;
+          }
+          if (id(mic_muted)) {
+            id(myDisplay).show_page(muteMicP);
+            id(myDisplay).update();
+            return;
+          }
+
+          if ((id(phase) == 0) && (!id(logo).is_running())) {
+            id(logo).execute();
+          } else if (id(phase) == 1) {
+            id(waiting).execute();
+          } else if (id(phase) == 2) {
+            id(external_player).execute();
+          } else if (id(phase) == 3) {
+            id(listening).execute();
+          } else if (id(phase) == 4) {
+            id(answering).execute();
+          }
+
+# Raspiaudio_Dev_a998c4.yaml - Version refactorisée (Partie 5.2.2.2 - Fin)
+
+  - id: logo
+    then:
+      - logger.log: "===> logo"
+      - media_player.volume_set:
+          id: speaker_media_player
+          volume: !lambda 'return std::min(id(Vol), 0.20f);'
+      - delay: 150ms
+      - media_player.speaker.play_on_device_media_file:
+          id: speaker_media_player
+          media_file: little_sound
+          announcement: false
+      - lambda: |-
+          id(myDisplay).show_page(logoP);
+          id(myDisplay).update();
+          id(lightTO) = 0;
+      - light.turn_on: screen_backlight
+      - delay: 2s
+      - media_player.volume_set:
+          id: speaker_media_player
+          volume: !lambda 'return id(Vol);'
+      - delay: 6s
+      - script.execute: wait_for_wifi_ready
+
+  - id: wait_for_wifi_ready
+    mode: restart
+    then:
+      - logger.log: "Waiting for WiFi before entering waiting state"
+      - while:
+          condition:
+            not:
+              wifi.connected:
+          then:
+            - lambda: |-
+                id(myDisplay).show_page(wifiWaitingP);
+                id(myDisplay).update();
+                id(lightTO) = 0;
+            - light.turn_on: screen_backlight
+            - delay: 1s
+      - logger.log: "WiFi connected, moving to waiting state"
+      - lambda: 'id(phase) = 1;'
+      - script.execute: reset_display
+
+  - id: update_playback_mode
+    mode: restart
+    then:
+      - if:
+          condition:
+            lambda: 'return id(music_active);'
+          then:
+            - script.stop: enter_idle_mode
+            - lambda: |-
+                id(mute) = false;
+                id(auto_mute_active) = false;
+            - speaker.volume_set:
+                id: radio_speaker
+                volume: !lambda |-
+                  if (id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING) {
+                    return clamp(id(Vol), 0.0f, 1.0f);
+                  }
+                  const float volume = id(sendspin_media_player).volume;
+                  return std::isfinite(volume) ? clamp(volume, 0.0f, 1.0f) : 1.0f;
+            - if:
+                condition:
+                  lambda: 'return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;'
+                then:
+                  - script.execute: apply_local_codec_volume
+                else:
+                  - lambda: |-
+                      for (uint8_t reg = 0x2E; reg <= 0x31; reg++) {
+                        id(my_es8388).write_byte(reg, 0x21);
+                      }
+            - micro_wake_word.stop:
+            - if:
+                condition:
+                  lambda: 'return !id(assist_return_to_ma);'
+                then:
+                  - lambda: 'id(phase) = 5;'
+                  - script.execute: reset_display
+          else:
+            - script.execute: enter_idle_mode
+
+  - id: enter_idle_mode
+    mode: restart
+    then:
+      - delay: 1200ms
+      - wait_until:
+          condition:
+            lambda: 'return id(radio_speaker).is_stopped();'
+          timeout: 4s
+      - if:
+          condition:
+            lambda: |-
+              return !id(music_active) && !id(assist_return_to_ma) &&
+                  id(sendspin_media_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING &&
+                  id(radio_speaker).is_stopped();
+          then:
+            - lambda: 'id(phase) = 1;'
+            - script.execute: reset_display
+
+  - id: waiting
+    mode: restart
+    then:
+      - if:
+          condition:
+            voice_assistant.is_running:
+          then:
+            - delay: 1s
+            - voice_assistant.stop:
+      - script.execute: mute_on
+      - logger.log: "===> wakeword"
+      - lambda: |-
+          id(myDisplay).show_page(waitingP);
+          id(myDisplay).update();
+          id(lightTO) = 0;
+      - light.turn_on: screen_backlight
+      - wait_until:
+          condition:
+            lambda: |-
+              return id(radio_speaker).is_stopped() || id(music_active) ||
+                  id(assist_return_to_ma) || id(va).is_running();
+          timeout: 8s
+      - if:
+          condition:
+            and:
+              - lambda: |-
+                  return !id(music_active) && !id(mic_muted) &&
+                      !id(assist_return_to_ma) && !id(va).is_running() &&
+                      id(sendspin_media_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING &&
+                      id(radio_speaker).is_stopped();
+              - not:
+                  micro_wake_word.is_running:
+          then:
+            - micro_wake_word.start:
+
+  - id: listening
+    mode: restart
+    then:
+      - logger.log: "===> listening"
+      - script.execute: mute_on
+      - lambda: |-
+          id(myDisplay).show_page(listeningP);
+          id(myDisplay).update();
+          id(lightTO) = 0;
+      - light.turn_on: screen_backlight
+
+  - id: answering
+    mode: restart
+    then:
+      - logger.log: "===> answering"
+      - script.execute: mute_off
+      - lambda: |-
+          id(myDisplay).show_page(answeringP);
+          id(myDisplay).update();
+          id(lightTO) = 0;
+      - light.turn_on: screen_backlight
+      - delay: 10s
+
+  - id: external_player
+    mode: restart
+    then:
+      - logger.log: "===> front end player"
+      - lambda: |-
+          id(myDisplay).show_page(waitingBP);
+          id(myDisplay).update();
+          id(lightTO) = 0;
+      - light.turn_on: screen_backlight
+
+  - id: mute_on
+    then:
+      - if:
+          condition:
+            lambda: 'return !id(auto_mute_active);'
+          then:
+            - media_player.volume_set:
+                id: speaker_media_player
+                volume: '0'
+      - lambda: |-
+          id(mute) = true;
+          id(auto_mute_active) = true;
+          id(volume_display_active) = true;
+          id(volume_display_timer) = 0;
+      - script.execute: schedule_volume_update
+
+  - id: mute_off
+    then:
+      - if:
+          condition:
+            lambda: 'return id(auto_mute_active);'
+          then:
+            - script.execute: apply_local_codec_volume
+            - media_player.volume_set:
+                id: speaker_media_player
+                volume: !lambda return(id(Vol));
+      - lambda: |-
+          id(mute) = false;
+          id(auto_mute_active) = false;
+          id(volume_display_active) = true;
+          id(volume_display_timer) = 0;
+      - script.execute: schedule_volume_update
