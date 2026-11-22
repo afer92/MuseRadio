@@ -23,7 +23,7 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
   * **Long press (≥ 1.8 s)**: Fetches the currently playing station URI via `music_assistant.get_queue` and saves it to the button's flash memory.
 * **Standalone Direct Web Radio Mode (Button 4 + Station Encoder)**:
   * **Left rotary encoder (`GPIO6` / `GPIO7`)**: Scrolls through the local station dropdown list (`local_radio_select`) with instant on-screen preview and automatic debounced switching (`600 ms`) if playback is already active.
-  * **Short press on Button 4**: Starts or stops the selected direct MP3 stream (e.g., *France Info*, *France Inter*, *France Musique*, *FIP*, *Nostalgie*, *Radio Classique*, or your custom URL on slot 7), automatically pausing Music Assistant if needed.
+  * **Short press on Button 4**: Starts or stops the selected direct MP3 stream (9 customizable stations in `stations/stations.yaml`, or your custom URL on slot **`10 - Station 4 (URL)`**), automatically pausing Music Assistant if needed.
 
 ### 2. Smart Voice Assistant (microWakeWord + Assist)
 * **Local Detection**: Supports `okay_nabu`, `hey_jarvis`, `hey_mycroft`, and `stop` models with on-the-fly sensitivity adjustment from Home Assistant (*Slightly*, *Moderately*, *Very sensitive*).
@@ -76,7 +76,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Web Radio Station** (`select`): Choose the station played directly by Button 4 (or scrolled via the left rotary encoder).
 * **Wake word sensitivity** (`select`): Adjust the local wake word detection threshold (*Slightly*, *Moderately*, or *Very sensitive*).
 * **Station button 1 to 3** (`text`): View or manually edit the Music Assistant URIs (`library://radio/...` or `http://...`) assigned to Buttons 1–3.
-* **Station button 4** (`text`): Enter a custom MP3 stream URL (`http://...` or `https://...`) accessible directly via the station encoder under option **`7 - Station 4 (URL)`**.
+* **Station button 4** (`text`): Enter a custom MP3 stream URL (`http://...` or `https://...`) accessible directly via the station encoder under option **`10 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`): Override the Home Assistant entity ID of the Music Assistant player (e.g., `media_player.raspiaudio_radio`) if automatic detection is not desired.
 
 ---
@@ -86,7 +86,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Microcontroller**: `esp32-s3-devkitc-1` (8 MB Flash, 80 MHz Octal PSRAM, 240 MHz CPU)
 * **I2C Bus (ES8388 Codec @ `0x10`)**: `SDA = GPIO18`, `SCL = GPIO11`
 * **I2S Audio Bus**: `MCLK = GPIO0`, `BCLK = GPIO5`, `LRCLK = GPIO16`, `DOUT = GPIO17`, `DIN = GPIO4`, `DAC_MUTE = GPIO46`
-* **SPI Display (ST7789V 320×240)**: `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
+* **SPI Display (`mipi_spi` ST7789V 320×240)**: `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
 * **Inputs & Power**: `Buttons ADC = GPIO1`, `Volume Encoder = GPIO42/GPIO3 (Click: GPIO48)`, `Function Encoder = GPIO7/GPIO6 (Click: GPIO45)`, `Jack Detect = GPIO10`, `IR Receiver = GPIO47`, `Battery ADC = GPIO13`, `USB Power = GPIO21`
 
 ---
