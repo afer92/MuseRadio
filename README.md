@@ -1,6 +1,6 @@
 # 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
  
-![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
+
 
 Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Radio (ESP32-S3)** intégrant simultanément :
 * **Music Assistant (via Sendspin)** : lecture multiroom FLAC 48 kHz avec affichage des métadonnées et contrôle du volume de groupe.
