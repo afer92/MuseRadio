@@ -1,3 +1,147 @@
+# 📻 Raspiaudio Radio — ESPHome Firmware (Music Assistant, Voice Assistant & Standalone Web Radio)
+
+![Raspiaudio Radio Screen Preview](docs/screen.jpg)
+
+🇬🇧 **English** | 🇫🇷 [Français](README.fr.md)
+
+---
+
+Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-S3)** board, seamlessly integrating:
+* **Music Assistant (via Sendspin)**: 48 kHz FLAC multiroom playback with metadata display and group volume control.
+* **Home Assistant Voice Assistant & microWakeWord**: Local wake word detection (*Okay Nabu*, *Hey Jarvis*, *Hey Mycroft*, *Stop*) with smart switching of the shared I2S audio bus.
+* **Standalone Local Web Radio (MP3)**: Direct streaming of Icecast/HTTP radio stations without relying on Home Assistant or Music Assistant.
+* **Event-Driven GUI (ST7789V 320×240)**: High-performance display (`update_interval: never`) featuring Home Assistant weather (temperature + vector icon), battery gauge, Wi-Fi signal strength, and visual action feedback.
+
+---
+
+## ✨ Key Features
+
+### 1. Dual Radio Playback Modes
+* **Music Assistant Mode (Buttons 1, 2, and 3)**:
+  * **Short press (< 1 s)**: Plays the stored station on the configured Music Assistant player (`ma_player_entity_id`).
+  * **Long press (≥ 1.8 s)**: Fetches the currently playing station URI via `music_assistant.get_queue` and saves it to the button's flash memory.
+* **Standalone Direct Web Radio Mode (Button 4 + Station Encoder)**:
+  * **Left rotary encoder (`GPIO6` / `GPIO7`)**: Scrolls through the local station dropdown list (`local_radio_select`) with instant on-screen preview and automatic debounced switching (`600 ms`) if playback is already active.
+  * **Short press on Button 4**: Starts or stops the selected direct MP3 stream (e.g., *France Info*, *France Inter*, *France Musique*, *FIP*, *Nostalgie*, *Radio Classique*, or your custom URL on slot 7), automatically pausing Music Assistant if needed.
+
+### 2. Smart Voice Assistant (microWakeWord + Assist)
+* **Local Detection**: Supports `okay_nabu`, `hey_jarvis`, `hey_mycroft`, and `stop` models with on-the-fly sensitivity adjustment from Home Assistant (*Slightly*, *Moderately*, *Very sensitive*).
+* **Temporary Music Interruption (`temporary_assist`)**: Pressing the **Assist button (`GPIO45`)** or the IR remote pauses the Sendspin group, releases the shared I2S bus, listens to your voice command, and automatically resumes music playback afterward.
+
+### 3. Advanced Hardware Management
+* **ES8388 Audio Codec**:
+  * Automatic headphone jack detection (`GPIO10`) with hardware I2C register switching between the internal speaker and line/headphone output.
+  * Fine gain curve on registers `0x2E`–`0x31` for smooth control at very low volume levels (`< 10%`).
+* **Power & Battery**: Voltage measurement (`GPIO13`) converted to percentage via a 22-point polynomial curve, plus USB charging detection (`GPIO21`).
+* **Infrared Remote (`GPIO47`, NEC protocol)**: Volume +/-, Mute/Unmute, and Voice Assistant trigger.
+---
+
+## 🎛️ Physical Controls
+
+| Control | Pin(s) | Short Press | Long Press / Rotation |
+| :--- | :--- | :--- | :--- |
+| **Volume Encoder** | `GPIO42` / `GPIO3` | — | Adjusts volume (MA group or local volume) |
+| **Volume Encoder Click** | `GPIO48` | Mute / Unmute | — |
+| **Function Encoder** | `GPIO7` / `GPIO6` | — | Selects a station from the Web Radio list |
+| **Function Encoder Click** | `GPIO45` | Starts / stops **Assist** | — |
+| **Buttons 1–3** | `GPIO1` (ADC) | Plays **MA Presets 1–3** | Saves current station to Presets 1–3 |
+| **Button 4 (Confirm)** | `GPIO1` (ADC) | Starts / Stops **Local Web Radio** | — |
+
+---
+
+## 🛠️ Installation & Prerequisites
+
+### 1. Software Prerequisites
+* **ESPHome** (`esp-idf` framework) via Home Assistant or CLI.
+* **Home Assistant** with **Music Assistant** integration (Sendspin) and a weather entity (default: `weather.forecast_maison`, configurable in `.variables`).
+* **Authorization**: Enable **"Allow the device to perform Home Assistant actions"** in Home Assistant under **Settings → Devices & Services → ESPHome → Your Radio → Configure / Options**.
+
+### 2. Required Directory Structure
+Organize your files in `/config/esphome/` to include the main config (`Raspiaudio.yaml`), `secrets.yaml`, the `common/` and `docs/` subdirectories, and the required UI/status image assets (`Raspiaudio.png`, `WFWW.png`, `W.png`, `LISTEN.png`, `ANSWER.png`, `mute_mic.png`, `mute_speaker.png`).
+
+### 3. Configuring `secrets.yaml`
+Add your Wi-Fi credentials in `secrets.yaml`:
+
+```yaml
+wifi_ssid: "Your_Primary_SSID"
+wifi_ssid_1: "Your_Secondary_SSID"
+wifi_password: "Your_WiFi_Password"
+```
+---
+
+## ⚙️ Home Assistant Configuration
+
+Once the device is flashed and added under **Settings → Devices & Services → ESPHome**, the following configuration entities are available:
+* **Web Radio Station** (`select`): Choose the station played directly by Button 4 (or scrolled via the left rotary encoder).
+* **Wake word sensitivity** (`select`): Adjust the local wake word detection threshold (*Slightly*, *Moderately*, or *Very sensitive*).
+* **Station button 1 to 3** (`text`): View or manually edit the Music Assistant URIs (`library://radio/...` or `http://...`) assigned to Buttons 1–3.
+* **Station button 4** (`text`): Enter a custom MP3 stream URL (`http://...` or `https://...`) accessible directly via the station encoder under option **`7 - Station 4 (URL)`**.
+* **set_ma_player_entity_id** (`text`): Override the Home Assistant entity ID of the Music Assistant player (e.g., `media_player.raspiaudio_radio`) if automatic detection is not desired.
+
+---
+
+## 🏗️ Hardware Architecture (ESP32-S3 Pinout)
+
+* **Microcontroller**: `esp32-s3-devkitc-1` (8 MB Flash, 80 MHz Octal PSRAM, 240 MHz CPU)
+* **I2C Bus (ES8388 Codec @ `0x10`)**: `SDA = GPIO18`, `SCL = GPIO11`
+* **I2S Audio Bus**: `MCLK = GPIO0`, `BCLK = GPIO5`, `LRCLK = GPIO16`, `DOUT = GPIO17`, `DIN = GPIO4`, `DAC_MUTE = GPIO46`
+* **SPI Display (ST7789V 320×240)**: `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
+* **Inputs & Power**: `Buttons ADC = GPIO1`, `Volume Encoder = GPIO42/GPIO3 (Click: GPIO48)`, `Function Encoder = GPIO7/GPIO6 (Click: GPIO45)`, `Jack Detect = GPIO10`, `IR Receiver = GPIO47`, `Battery ADC = GPIO13`, `USB Power = GPIO21`
+
+---
+
+## 🩺 Troubleshooting (FAQ)
+
+### 1. Compilation Error: `'logoP' was not declared in this scope`
+* **Cause**: The C++ call `id(myDisplay).show_page(logoP)` in `on_boot:` is evaluated before the `display:` page identifiers are declared, or an indentation mistake prevents `display:` from being parsed.
+* **Solution**: Use the native YAML action `- display.page.show: logoP` followed by `- component.update: myDisplay` in `on_boot:`, and ensure there is only one top-level `display:` block and one top-level `select:` block in your file.
+
+### 2. Local Web Radio (Button 4) fails to start or audio stays locked
+* **Cause**: The `music_speaker` audio pipeline is still locked by **Music Assistant (Sendspin)**, or `local_radio_player` has not closed its previous HTTP stream.
+* **Solution**:
+  * Make sure `toggle_local_radio` stops `music_source_player` and waits up to `4s` before launching `local_radio_player`.
+  * If an Icecast stream freezes after a network drop, press **Button 4** once to force `media_player.stop` (`STOP RADIO`), wait 1 second, then press it again to reconnect.
+
+### 3. Audio volume is too loud at boot or when starting Web Radio
+* **Cause**: By default, an ESPHome `media_player` component initializes its software volume at `1.0` (100%).
+* **Solution**:
+  * Ensure `volume_initial: 0.3` is set on `local_radio_player`.
+  * In the `logo` script, keep the temporary volume cap `std::min(id(Vol), 0.30f)` before playing `little_sound`.
+
+### 4. Wake word (*Okay Nabu*) does not trigger while music is playing
+* **Expected Behavior**: To prevent the speaker from self-triggering the microphone and to preserve ESP32-S3 CPU resources during 48 kHz FLAC decoding, `micro_wake_word` is intentionally paused while `music_active` is true.
+* **Using Assist during music**: Press the **Assist button (`GPIO45`)** or the **Back/Return** button on your IR remote. The `temporary_assist` script will pause playback, release the I2S bus, listen to your command, and automatically resume music afterward.
+
+### 5. Long-pressing Buttons 1–3 displays `"NO RADIO"` or `"PLAY FAILED"`
+* **Cause**: The Music Assistant entity (`ma_player_entity_id`) is not yet stored on the ESP32, or no active queue is detected in Home Assistant.
+* **Solution**:
+  1. Start a radio station once from the Home Assistant UI on your Raspiaudio player.
+  2. Hold **Button 1, 2, or 3** for **2 seconds** until `"MEMO X OK"` appears on screen: the device will automatically save both the player entity ID and the stream URI.
+  3. Alternatively, manually enter the entity ID (e.g., `media_player.raspiaudio_radio`) into the **set_ma_player_entity_id** text field on the device page in Home Assistant.
+
+### 6. Station selector encoder skips 2 stations per click
+* **Cause**: The `resolution` parameter on `function_encoder` is set to `2` instead of `1`.
+* **Solution**: Set `resolution: 1` under the `rotary_encoder` configuration for `function_encoder` (`GPIO7` / `GPIO6`).
+
+### 7. Header temperature or weather icon displays `--°C`
+* **Cause**: The weather entity defined in `.variables` (`&weather_entity "weather.forecast_maison"`) does not match an existing entity in your Home Assistant instance, or the ESP32 is not yet connected to the Home Assistant API.
+* **Solution**: Replace `"weather.forecast_maison"` at the top of `Raspiaudio.yaml` with your actual Home Assistant weather entity ID (e.g., `"weather.home"` or `"weather.openweathermap"`).
+
+### 8. Screen stays black or stuck on `"Waiting WiFi..."`
+* **Black screen after 1 hour**: The backlight automatically turns off after `3600 s` of inactivity (`lightTO`). Turn either rotary encoder or press any button to wake the screen.
+* **Stuck on `"Waiting WiFi..."`**: Check your credentials in `secrets.yaml`. If no configured network is reachable, the device enables its fallback access point **`Raspiaudio-radio-full`** (password: `12345678`) so you can reconfigure Wi-Fi via the captive portal.
+
+---
+
+## 📄 License
+
+This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details.
+---
+
+🇬🇧 **English** | 🇫🇷 [Français](README.fr.md)
+
+---
+
 # 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
  
 ![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
