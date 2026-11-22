@@ -1,5 +1,5 @@
 # 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
-
+ 
 ![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
 
 Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Radio (ESP32-S3)** intégrant simultanément :
