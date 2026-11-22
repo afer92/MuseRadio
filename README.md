@@ -88,7 +88,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Web Radio Station** (`select`) : choisissez la station jouée en direct par le bouton 4.
 * **Wake word sensitivity** (`select`) : ajustez la sensibilité du micro de réveil.
 * **Station button 1 à 3** (`text`) : visualisez ou modifiez manuellement les URI (`library://radio/...` ou `http://...`) des boutons Music Assistant.
-* **Station button 4** (`text`) : permet de saisir une URL MP3 personnalisée (http://... ou https://...) accessible directement depuis la molette sous l'option 7 - Station 4 (URL).
+* **Station button 4** (`text`) : saisissez une URL MP3 personnalisée (`http://...` ou `https://...`) accessible directement depuis la molette sous l'option **`7 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`) : forcez l'identifiant d'entité Home Assistant du lecteur Music Assistant (ex. `media_player.raspiaudio_radio`) si la détection automatique n'est pas souhaitée.
 
 ---
