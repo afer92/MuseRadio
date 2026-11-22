@@ -1,7 +1,7 @@
 # 2026.11.0
 
-# RAM:   [====      ]  40.4% (used 138139 bytes from 341760 bytes)
-# Flash: [========= ]  94.5% (used 3717823 bytes from 3932160 bytes)
+# RAM:   [====       ]  38.9% (used 132879 bytes from 341760 bytes)
+# Flash: [========  ]  81.9% (used 3220215 bytes from 3932160 bytes)
 
 substitutions:
   name: raspiaudio-radio
