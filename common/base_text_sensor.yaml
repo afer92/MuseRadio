@@ -1,0 +1,23 @@
+# common/base_text_sensor.yaml
+# Capteurs texte de diagnostic communs pour les appareils ESPHome
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    ssid:
+      name: "Connected SSID"
+      id: wifi_ssid_sensor
+      entity_category: diagnostic
+    bssid:
+      name: "Connected BSSID"
+      entity_category: diagnostic
+    mac_address:
+      name: "Mac Wifi Address"
+      entity_category: diagnostic
+
+  - platform: version
+    name: "ESPHome Version"
+    hide_timestamp: true
+    entity_category: diagnostic
