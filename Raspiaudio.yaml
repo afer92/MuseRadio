@@ -1265,6 +1265,7 @@ select:
       - "4 - FIP"
       - "5 - Nostalgie"
       - "6 - Radio Classique"
+      - "7 - Station 4 (URL)"
     on_value:
       then:
         - light.turn_on:
@@ -1848,6 +1849,7 @@ script:
                     case 3: return std::string("http://direct.fipradio.fr/live/fip-midfi.mp3");
                     case 4: return std::string("https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxradios");
                     case 5: return std::string("http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3");
+                    case 6: return id(radio_station_4).state;
                     default: return std::string("http://direct.franceinfo.fr/live/franceinfo-midfi.mp3");
                   }
             - delay: 100ms
