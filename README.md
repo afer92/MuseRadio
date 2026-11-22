@@ -54,6 +54,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 
 - **ESPHome** (`esp-idf`) via Home Assistant ou CLI.
 - **Home Assistant** incluant l'intégration **Music Assistant** (Sendspin) et une entité météo (`weather.forecast_maison` par défaut, paramétrable dans `.variables`).
+- Check that your radio is authorized to perform Home Assistant actions : (HA > Settings > Devices & Services > ESPHome > your radio > Options…). “Allow the device to perform Home Assistant actions” must be selected. This is essential.
 
 ### 2. Arborescence des fichiers requise
 
