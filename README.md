@@ -48,41 +48,36 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 
 ---
 
-## 🛠️ Installation et prérequis
+## 🛠 Installation et prérequis
 
 ### 1. Prérequis logiciels
-* **ESPHome** : version `2026.9.0` ou supérieure (framework `esp-idf`).
-* **Home Assistant** avec :
-  * L'intégration **Music Assistant** (et le composant **Sendspin**).
-  * Une entité météo (par défaut `weather.forecast_maison`, modifiable via l'ancre `.variables` en haut du fichier YAML).
+
+- **ESPHome** (`esp-idf`) via Home Assistant ou CLI.
+- **Home Assistant** incluant l'intégration **Music Assistant** (Sendspin) et une entité météo (`weather.forecast_maison` par défaut, paramétrable dans `.variables`).
 
 ### 2. Arborescence des fichiers requise
-Assurez-vous que les dossiers suivants sont présents dans votre répertoire `/config/esphome/` avant de compiler :
+
+Placez les fichiers dans `/config/esphome/` en conservant cette structure :
 
 ```text
 /config/esphome/
-├── Raspiaudio_Dev_a998c4.yaml
+├── Raspiaudio.yaml
 ├── secrets.yaml
-├── common/
-│   └── base_text_sensor.yaml
-└── images/
-    ├── Raspiaudio.png
-    ├── WFWW.png
-    ├── W.png
-    ├── LISTEN.png
-    ├── ANSWER.png
-    ├── mute_mic.png
-    └── mute_speaker.png
+├── common/base_text_sensor.yaml
+├── docs/screen.jpg
+└── images/ (Raspiaudio.png, WFWW.png, W.png, LISTEN.png, ANSWER.png, mute_mic.png, mute_speaker.png)
 ```
 
 ### 3. Configuration de `secrets.yaml`
-Renseignez vos identifiants Wi-Fi dans votre fichier `secrets.yaml` :
+
+Configurez vos identifiants Wi-Fi (principal et de secours) dans `secrets.yaml` :
 
 ```yaml
 wifi_ssid: "Votre_SSID_Principal"
 wifi_ssid_1: "Votre_SSID_Secondaire"
 wifi_password: "Votre_Mot_De_Passe_WiFi"
 ```
+
 
 ---
 
