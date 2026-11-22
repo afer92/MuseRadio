@@ -13,6 +13,8 @@ substitutions:
 packages:
   - !include common/base_text_sensor.yaml
 
+# === 1. SYSTÈME, RÉSEAU & BUS MATÉRIELS (I2C, SPI, I2S) ===
+
 esphome:
   name: ${name}
   friendly_name: ${friendly_name}
@@ -478,7 +480,7 @@ globals:
   - id: ma_volume_last_command_ms
     type: uint32_t
     initial_value: '0'
-  - id: phase
+  - id: phase # 0: Boot/Logo | 1: Veille (WakeWord) | 2: Lecteur externe | 3: Écoute | 4: Réponse | 5: Musique
     type: int
     initial_value: '0'
   - id: mute
@@ -2111,6 +2113,7 @@ script:
       - logger.log: "Jack detect high -> route to speaker"
       - output.turn_off: dac_mute
       - lambda: |-
+          // Active les sorties DAC et le routage vers le haut-parleur interne
           id(my_es8388).write_byte(0x1D, 0x20);
           id(my_es8388).write_byte(0x1C, 0x10);
           id(my_es8388).write_byte(0x04, 0x30);
@@ -2120,6 +2123,7 @@ script:
       - logger.log: "Jack detect low -> route to line out"
       - output.turn_on: dac_mute
       - lambda: |-
+          // Coupe l'amplificateur HP et bascule vers la sortie casque/ligne
           id(my_es8388).write_byte(0x1D, 0x00);
           id(my_es8388).write_byte(0x1C, 0x00);
           id(my_es8388).write_byte(0x04, 0x0C);
