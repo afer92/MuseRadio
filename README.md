@@ -2,9 +2,10 @@
 
 ![Raspiaudio Radio Screen Preview](docs/screen.jpg)
 
-🇬🇧 **English** | 🇫🇷 [Français](README.fr.md)
-
+🌐 **[English](#-english)** | **[Français](#-français)**
 ---
+
+## 🇬🇧 English
 
 Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-S3)** board, seamlessly integrating:
 * **Music Assistant (via Sendspin)**: 48 kHz FLAC multiroom playback with metadata display and group volume control.
@@ -138,7 +139,9 @@ Once the device is flashed and added under **Settings → Devices & Services →
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)** — see the [LICENSE](LICENSE) file for details.
 ---
 
-🇬🇧 **English** | 🇫🇷 [Français](README.fr.md)
+## 🇫🇷 Français
+
+![Raspiaudio Radio Screen Preview](docs/screen.jpg)
 
 ---
 
