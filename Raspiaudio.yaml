@@ -681,14 +681,21 @@ color:
 
 display:
   - id: myDisplay
-    platform: ili9xxx
+    platform: mipi_spi
     spi_id: spi_bus0
     model: ST7789V
     cs_pin: GPIO40
     dc_pin: GPIO39
     reset_pin: GPIO9
     invert_colors: true
-    rotation: 90
+    color_depth: 16
+    dimensions:
+      width: 320
+      height: 240
+    transform:
+      swap_xy: true
+      mirror_x: true
+      mirror_y: false
     update_interval: never
     auto_clear_enabled: false
     pages:
