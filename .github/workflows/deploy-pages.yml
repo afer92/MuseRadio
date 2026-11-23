@@ -36,6 +36,16 @@ jobs:
           yaml-file: Raspiaudio.yaml
           complete-manifest: true
 
+      - name: Sauvegarder firmware.elf en artefact (Debug)
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware-debug-${{ github.sha }}
+          path: |
+            .esphome/build/**/.pioenvs/**/firmware.elf
+            ${{ steps.build.outputs.name }}/*.elf
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Préparer le site GitHub Pages
         run: |
           mkdir -p _site
