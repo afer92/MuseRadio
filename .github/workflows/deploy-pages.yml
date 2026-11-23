@@ -30,18 +30,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Compiler le firmware ESPHome
+        id: build
         uses: esphome/build-action@v7.1.0
         with:
-          yaml_file: Raspiaudio.yaml
-          output_path: build-output
+          yaml-file: Raspiaudio.yaml
           complete-manifest: true
 
       - name: Préparer le site GitHub Pages
         run: |
           mkdir -p _site
           cp -r docs/* _site/
-          cp build-output/manifest.json _site/
-          cp build-output/*.factory.bin _site/
+          cp "${{ steps.build.outputs.name }}/manifest.json" _site/
+          cp "${{ steps.build.outputs.name }}"/*.factory.bin _site/
 
       - name: Uploader l'artefact GitHub Pages
         uses: actions/upload-pages-artifact@v3
