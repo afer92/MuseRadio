@@ -1,13 +1,15 @@
 {
-  "name": "MuseRadio (Raspiaudio ESP32-S3)",
+  "name": "MuseRadio (Raspiaudio Radio)",
   "version": "1.0.0",
+  "home_assistant_domain": "esphome",
   "new_install_prompt_erase": true,
   "builds": [
     {
       "chipFamily": "ESP32-S3",
+      "improv": false,
       "parts": [
         {
-          "path": "firmware.factory.bin",
+          "path": "raspiaudio-radio.factory.bin",
           "offset": 0
         }
       ]
