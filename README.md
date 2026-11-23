@@ -4,6 +4,7 @@
 [![License: GPL v3](https://shields.io)](https://gnu.org)
 [![ESPHome](https://shields.io)](https://esphome.io)
 [![Build Firmware](https://github.com)](https://github.com)
+[![Install via Browser](https://shields.io)](https://github.io)
 
 ![Raspiaudio Radio Screen Preview](docs/screen.jpg)
 
@@ -56,6 +57,14 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 ---
 
 ## 🛠️ Installation & Prerequisites
+
+### ⚡ Quick Install via Browser (Recommended)
+
+You can flash the pre-compiled firmware directly onto your **Raspiaudio Radio (ESP32-S3)** via USB without installing ESPHome:
+
+👉 **[Install via Browser (ESP Web Tools)](https://github.io)** *(Requires Google Chrome or Microsoft Edge on desktop)*
+
+Once flashed, connect to the **`Raspiaudio-radio-full`** Wi-Fi access point (password: `12345678`) to configure your Wi-Fi network.
 
 ### 1. Software Prerequisites
 * **ESPHome** (`esp-idf` framework) via Home Assistant or CLI.
@@ -210,6 +219,14 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 ---
 
 ## 🛠 Installation et prérequis
+
+### ⚡ Installation rapide via le navigateur (Recommandée)
+
+Vous pouvez flasher directement le firmware précompilé sur votre carte **Raspiaudio Radio (ESP32-S3)** en USB sans installer ESPHome :
+
+👉 **[Installer via le navigateur (ESP Web Tools)](https://github.io)** *(Nécessite Google Chrome ou Microsoft Edge sur ordinateur)*
+
+Une fois le flashage terminé, connectez-vous au point d'accès Wi-Fi **`Raspiaudio-radio-full`** (mot de passe : `12345678`) pour configurer votre réseau Wi-Fi.
 
 ### 1. Prérequis logiciels
 
