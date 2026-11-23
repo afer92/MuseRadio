@@ -58,7 +58,8 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 * **Authorization**: Enable **"Allow the device to perform Home Assistant actions"** in Home Assistant under **Settings → Devices & Services → ESPHome → Your Radio → Configure / Options**.
 
 ### 2. Required Directory Structure
-Organize your files in `/config/esphome/` to include the main config (`Raspiaudio.yaml`), `secrets.yaml`, the `common/` and `docs/` subdirectories, and the required UI/status image assets (`Raspiaudio.png`, `WFWW.png`, `W.png`, `LISTEN.png`, `ANSWER.png`, `mute_mic.png`, `mute_speaker.png`).
+
+Organize your files in `/config/esphome/` to include the main config (`Raspiaudio.yaml`), `secrets.yaml`, the `common/`, `docs/`, `stations/`, and `images/` subdirectories:
 
 ```text
 /config/esphome/
@@ -69,6 +70,7 @@ Organize your files in `/config/esphome/` to include the main config (`Raspiaudi
 ├── stations/stations.yaml
 └── images/ (Raspiaudio.png, WFWW.png, W.png, LISTEN.png, ANSWER.png, mute_mic.png, mute_speaker.png)
 ```
+
 
 ### 3. Configuring `secrets.yaml`
 Add your Wi-Fi credentials in `secrets.yaml`:
@@ -254,6 +256,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Bus I2C (Codec ES8388 @ `0x10`)** : `SDA = GPIO18`, `SCL = GPIO11`
 * **Bus I2S Audio** : `MCLK = GPIO0`, `BCLK = GPIO5`, `LRCLK = GPIO16`, `DOUT = GPIO17`, `DIN = GPIO4`, `DAC_MUTE = GPIO46`
 * **Écran SPI (ST7789V 320×240)** : `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
+* **Entrées & Alimentation** : Boutons `ADC = GPIO1`, Encodeur `Volume = GPIO42/GPIO3 (Clic : GPIO48)`, Encodeur `Fonction = GPIO7/GPIO6 (Clic : GPIO45)`, Détection `Casque = GPIO10`, Récepteur `IR = GPIO47`, Batterie `ADC = GPIO13`, Alimentation `USB = GPIO21`
 
 ---
 
