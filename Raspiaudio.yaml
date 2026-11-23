@@ -175,6 +175,31 @@ remote_receiver:
                   - script.execute: temporary_assist
                 else:
                   - script.execute: go_assist
+      - if:
+          # Received NEC: address=0xFE01, command=0xF50A command_repeats=1
+          condition:
+            lambda: 'return ((x.command == 0xF50A) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR station next"
+            - select.next:
+                id: local_radio_select
+                cycle: true
+      - if:
+          # Received NEC: address=0xFE01, command=0xFD02 command_repeats=1
+          condition:
+            lambda: 'return ((x.command == 0xFD02) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR station prev"
+            - select.previous:
+                id: local_radio_select
+                cycle: true
+      - if:
+          # Received NEC: address=0xFE01, command=0xF906 command_repeats=1
+          condition:
+            lambda: 'return ((x.command == 0xF906) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR toggle local radio"
+            - script.execute: toggle_local_radio
 
 es8388:
 
@@ -670,13 +695,6 @@ font:
     id: ma_font_status
     size: 14
     glyphs: *ma_glyphs
-  - file:
-      type: gfonts
-      family: Figtree
-      weight: 600
-    id: ma_font_clock
-    size: 64
-    glyphs: "0123456789:"
   - file:
       type: gfonts
       family: Figtree
