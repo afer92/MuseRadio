@@ -153,7 +153,9 @@ remote_receiver:
             - if:
                 condition:
                   lambda: |-
-                    return id(music_active) || id(assist_return_to_ma) ||
+                    return id(music_active) ||
+                        id(assist_return_to_ma) ||
+                        id(assist_return_to_local_radio) ||
                         id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
                 then:
                   - script.execute: temporary_assist
@@ -308,6 +310,15 @@ media_player:
           then:
             - script.stop: enter_idle_mode
             - micro_wake_word.stop:
+            - if:
+                condition:
+                  lambda: |-
+                    return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                           id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PAUSED;
+                then:
+                  - media_player.stop:
+                      id: local_radio_player
+                      announcement: false
       - script.execute: schedule_music_refresh
 
   - platform: speaker_source
@@ -401,7 +412,7 @@ voice_assistant:
               voice_assistant.is_running:
     - if:
         condition:
-          lambda: 'return id(assist_return_to_ma);'
+          lambda: 'return id(assist_return_to_ma) || id(assist_return_to_local_radio);'
         then:
           - script.execute: finish_temporary_assist
         else:
@@ -420,7 +431,7 @@ voice_assistant:
     - delay: 1s
     - if:
         condition:
-          lambda: 'return id(assist_return_to_ma);'
+          lambda: 'return id(assist_return_to_ma) || id(assist_return_to_local_radio);'
         then:
           - script.execute: finish_temporary_assist
         else:
@@ -499,7 +510,10 @@ globals:
   - id: volume_display_timer
     type: int
     initial_value: '0'
-
+  - id: assist_return_to_local_radio
+    type: bool
+    initial_value: 'false'
+    
 interval:
   - interval: 1s
     then:
@@ -1153,7 +1167,9 @@ binary_sensor:
           - if:
               condition:
                 lambda: |-
-                  return id(music_active) || id(assist_return_to_ma) ||
+                  return id(music_active) ||
+                      id(assist_return_to_ma) ||
+                      id(assist_return_to_local_radio) ||
                       id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
               then:
                 - script.execute: temporary_assist
@@ -1788,7 +1804,11 @@ script:
       - delay: 200ms
       - if:
           condition:
-            lambda: 'return id(music_active) && !id(assist_return_to_ma) && id(myDisplay).is_ready();'
+            lambda: |-
+              return id(music_active) &&
+                  !id(assist_return_to_ma) &&
+                  !id(assist_return_to_local_radio) &&
+                  id(myDisplay).is_ready();
           then:
             - component.update: myDisplay
 
@@ -1862,7 +1882,7 @@ script:
                       id: local_radio_player
                       announcement: false
                       media_url: !lambda |-
-                        static const char* urls[] = {
+                        static const std::vector<std::string> urls = {
                           "${st_1_url}",
                           "${st_2_url}",
                           "${st_3_url}",
@@ -1873,7 +1893,7 @@ script:
                           "${st_8_url}",
                           "${st_9_url}"
                         };
-                        const int count = sizeof(urls) / sizeof(urls);
+                        const int count = static_cast<int>(urls.size());
                         const int custom_idx = static_cast<int>(id(local_radio_select).size()) - 1;
                         auto idx = id(local_radio_select).active_index();
                         const int i = idx.has_value() ? static_cast<int>(idx.value()) : 0;
@@ -1881,9 +1901,9 @@ script:
                           return id(radio_station_4).state;
                         }
                         if (i >= 0 && i < count) {
-                          return std::string(urls[i]);
+                          return urls.at(i);
                         }
-                        return std::string(urls);
+                        return urls.front();
                   - delay: 100ms
                   - media_player.volume_set:
                       id: local_radio_player
@@ -1919,54 +1939,77 @@ script:
             - script.stop: temporary_assist
       - if:
           condition:
-            lambda: 'return id(assist_return_to_ma);'
+            lambda: 'return id(assist_return_to_ma) || id(assist_return_to_local_radio);'
           then:
             - voice_assistant.stop:
           else:
             - lambda: |-
-                id(assist_return_to_ma) = true;
+                const bool was_local =
+                    id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                    id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PAUSED;
+                id(assist_return_to_local_radio) = was_local;
+                id(assist_return_to_ma) = !was_local;
                 id(assist_left_ma_group) = false;
                 id(phase) = 3;
-            - media_player.pause: sendspin_media_player
-            - wait_until:
-                condition:
-                  lambda: |-
-                    return id(sendspin_media_player).state !=
-                        media_player::MEDIA_PLAYER_STATE_PLAYING;
-                timeout: 8s
             - if:
                 condition:
-                  lambda: |-
-                    return id(sendspin_media_player).state ==
-                        media_player::MEDIA_PLAYER_STATE_PLAYING;
+                  lambda: 'return id(assist_return_to_local_radio);'
                 then:
-                  - logger.log:
-                      level: ERROR
-                      format: "Assist cancelled: Sendspin group did not pause"
-                  - lambda: 'id(assist_return_to_ma) = false;'
-                  - script.execute: reset_display
+                  - media_player.stop:
+                      id: local_radio_player
+                      announcement: false
                 else:
+                  - media_player.pause: sendspin_media_player
+                  - wait_until:
+                      condition:
+                        lambda: |-
+                          return id(sendspin_media_player).state !=
+                              media_player::MEDIA_PLAYER_STATE_PLAYING;
+                      timeout: 8s
+                  - if:
+                      condition:
+                        lambda: |-
+                          return id(sendspin_media_player).state ==
+                              media_player::MEDIA_PLAYER_STATE_PLAYING;
+                      then:
+                        - logger.log:
+                            level: ERROR
+                            format: "Assist cancelled: Sendspin group did not pause"
+                        - lambda: 'id(assist_return_to_ma) = false;'
+                        - script.execute: reset_display
+                        - script.stop: temporary_assist
+            - wait_until:
+                condition:
+                  lambda: 'return !id(music_active) && id(radio_speaker).is_stopped();'
+                timeout: 6s
+            - if:
+                condition:
+                  lambda: 'return id(music_active) || !id(radio_speaker).is_stopped();'
+                then:
+                  - if:
+                      condition:
+                        lambda: 'return id(assist_return_to_ma);'
+                      then:
+                        - lambda: 'id(assist_left_ma_group) = true;'
+                        - media_player.stop: music_source_player
                   - wait_until:
                       condition:
                         lambda: 'return !id(music_active) && id(radio_speaker).is_stopped();'
                       timeout: 6s
+            - if:
+                condition:
+                  lambda: 'return id(music_active) || !id(radio_speaker).is_stopped();'
+                then:
+                  - logger.log:
+                      level: ERROR
+                      format: "Assist cancelled: Radio did not release the I2S bus"
                   - if:
                       condition:
-                        lambda: 'return id(music_active) || !id(radio_speaker).is_stopped();'
+                        lambda: 'return id(assist_return_to_local_radio);'
                       then:
-                        - lambda: 'id(assist_left_ma_group) = true;'
-                        - media_player.stop: music_source_player
-                        - wait_until:
-                            condition:
-                              lambda: 'return !id(music_active) && id(radio_speaker).is_stopped();'
-                            timeout: 6s
-                  - if:
-                      condition:
-                        lambda: 'return id(music_active) || !id(radio_speaker).is_stopped();'
-                      then:
-                        - logger.log:
-                            level: ERROR
-                            format: "Assist cancelled: Radio did not release the I2S bus"
+                        - lambda: 'id(assist_return_to_local_radio) = false;'
+                        - script.execute: toggle_local_radio
+                      else:
                         - lambda: 'id(assist_return_to_ma) = false;'
                         - if:
                             condition:
@@ -1975,11 +2018,11 @@ script:
                               - sendspin.switch: sendspin_hub
                         - media_player.play: sendspin_media_player
                         - script.execute: reset_display
-                      else:
-                        - light.turn_on: screen_backlight
-                        - script.execute: reset_display
-                        - voice_assistant.start:
-                            silence_detection: true
+                else:
+                  - light.turn_on: screen_backlight
+                  - script.execute: reset_display
+                  - voice_assistant.start:
+                      silence_detection: true
 
   - id: finish_temporary_assist
     mode: single
@@ -1991,10 +2034,10 @@ script:
           timeout: 10s
       - if:
           condition:
-            lambda: 'return id(assist_return_to_ma);'
+            lambda: 'return id(assist_return_to_local_radio);'
           then:
             - lambda: |-
-                id(assist_return_to_ma) = false;
+                id(assist_return_to_local_radio) = false;
                 id(phase) = 1;
             - micro_wake_word.stop:
             - wait_until:
@@ -2003,19 +2046,35 @@ script:
                     micro_wake_word.is_running:
                 timeout: 3s
             - delay: 200ms
+            - script.execute: toggle_local_radio
+          else:
             - if:
                 condition:
-                  lambda: 'return id(assist_left_ma_group);'
+                  lambda: 'return id(assist_return_to_ma);'
                 then:
-                  - sendspin.switch: sendspin_hub
-                  - delay: 300ms
-            - media_player.play: sendspin_media_player
-            - wait_until:
-                condition:
-                  lambda: 'return id(music_active);'
-                timeout: 8s
-            - lambda: 'id(assist_left_ma_group) = false;'
-            - script.execute: reset_display
+                  - lambda: |-
+                      id(assist_return_to_ma) = false;
+                      id(phase) = 1;
+                  - micro_wake_word.stop:
+                  - wait_until:
+                      condition:
+                        not:
+                          micro_wake_word.is_running:
+                      timeout: 3s
+                  - delay: 200ms
+                  - if:
+                      condition:
+                        lambda: 'return id(assist_left_ma_group);'
+                      then:
+                        - sendspin.switch: sendspin_hub
+                        - delay: 300ms
+                  - media_player.play: sendspin_media_player
+                  - wait_until:
+                      condition:
+                        lambda: 'return id(music_active);'
+                      timeout: 8s
+                  - lambda: 'id(assist_left_ma_group) = false;'
+                  - script.execute: reset_display
 
   - id: go_assist
     then:
@@ -2246,9 +2305,10 @@ script:
       - logger.log: "===> reset_display"
       - lambda: |-
           id(lightTO) = 0;
+          const bool in_temp_assist = id(assist_return_to_ma) || id(assist_return_to_local_radio);
           if ((id(music_active) ||
                id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING) &&
-              !id(assist_return_to_ma)) {
+              !in_temp_assist) {
             id(myDisplay).show_page(musicP);
             id(myDisplay).update();
             return;
