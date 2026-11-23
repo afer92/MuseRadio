@@ -3,6 +3,7 @@
 [![GitHub Release](https://shields.io)](https://github.com)
 [![License: GPL v3](https://shields.io)](https://gnu.org)
 [![ESPHome](https://shields.io)](https://esphome.io)
+[![Build Firmware](https://github.com)](https://github.com)
 
 ![Raspiaudio Radio Screen Preview](docs/screen.jpg)
 
