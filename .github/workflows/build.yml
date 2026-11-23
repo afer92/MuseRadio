@@ -31,8 +31,20 @@ jobs:
           name: muse-radio-firmware
           path: ${{ steps.build.outputs.firmware-path }}/*.bin
 
-      - name: Attach binary to GitHub Release
+      - name: Attach binaries to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
           files: ${{ steps.build.outputs.firmware-path }}/*.bin
+
+      - name: Update GitHub Pages factory binary on Release
+        if: github.event_name == 'release'
+        run: |
+          FACTORY_BIN=$(find "${{ steps.build.outputs.firmware-path }}" -name "*factory.bin" | head -n 1)
+          cp "$FACTORY_BIN" docs/firmware.factory.bin
+          sed -i "s/\"version\": \".*\"/\"version\": \"${GITHUB_REF_NAME}\"/" docs/manifest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@://github.com"
+          git add docs/firmware.factory.bin docs/manifest.json
+          git commit -m "chore: update web installer binary for ${GITHUB_REF_NAME}" || exit 0
+          git push origin HEAD:main
