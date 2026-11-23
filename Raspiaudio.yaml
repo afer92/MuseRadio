@@ -2655,4 +2655,3 @@ script:
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
       - script.execute: schedule_volume_update
-
