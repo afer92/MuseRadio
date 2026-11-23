@@ -1,0 +1,60 @@
+name: Build & Deploy MuseRadio Web Installer
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Raspiaudio.yaml'
+      - 'common/**'
+      - 'stations/**'
+      - 'images/**'
+      - 'docs/**'
+      - '.github/workflows/deploy-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le dépôt
+        uses: actions/checkout@v4
+
+      - name: Compiler le firmware ESPHome
+        uses: esphome/build-action@v7.1.0
+        with:
+          yaml_file: Raspiaudio.yaml
+          output_path: build-output
+          complete-manifest: true
+
+      - name: Préparer le site GitHub Pages
+        run: |
+          mkdir -p _site
+          cp -r docs/* _site/
+          cp build-output/manifest.json _site/
+          cp build-output/*.factory.bin _site/
+
+      - name: Uploader l'artefact GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
