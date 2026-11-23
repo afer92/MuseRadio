@@ -1,0 +1,32 @@
+substitutions:
+  # --- LISTE DES STATIONS WEB RADIO LOCALES ---
+  st_1_name: "1 - France Info"
+  st_1_url: "http://direct.franceinfo.fr/live/franceinfo-midfi.mp3"
+
+  st_2_name: "2 - France Inter"
+  st_2_url: "http://direct.franceinter.fr/live/franceinter-midfi.mp3"
+
+  st_3_name: "3 - France Musique"
+  st_3_url: "https://direct.francemusique.fr/live/francemusique-midfi.mp3"
+
+  st_4_name: "4 - FIP"
+  st_4_url: "http://direct.fipradio.fr/live/fip-midfi.mp3"
+
+  st_5_name: "5 - Nostalgie"
+  st_5_url: "https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxradios"
+
+  st_6_name: "6 - Radio Classique"
+  st_6_url: "http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3"
+
+  st_7_name: "7 - Radio Classique"
+  st_7_url: "http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3"
+
+  st_8_name: "8 - France Culture"
+  st_8_url: "http://direct.franceculture.fr/live/franceculture-midfi.mp3"
+
+  st_9_name: "9 - Le Mouv"
+  st_9_url: "http://icecast.radiofrance.fr/mouv-midfi.mp3"
+
+  st_10_name: "10 - NRJ"
+  st_10_url: "https://streaming.nrjaudio.fm/oumvmk8fnozc?origine=fluxradios"
+  
