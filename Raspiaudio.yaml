@@ -1810,7 +1810,7 @@ script:
                   !id(assist_return_to_local_radio) &&
                   id(myDisplay).is_ready();
           then:
-            - component.update: myDisplay
+            - script.execute: reset_display
 
   - id: stop_and_restart_local_radio
     mode: restart
@@ -2405,10 +2405,10 @@ script:
             - micro_wake_word.stop:
             - if:
                 condition:
-                  lambda: 'return !id(assist_return_to_ma);'
+                  lambda: 'return !id(assist_return_to_ma) && !id(assist_return_to_local_radio);'
                 then:
                   - lambda: 'id(phase) = 5;'
-                  - script.execute: reset_display
+                  - script.execute: schedule_music_refresh
           else:
             - script.execute: enter_idle_mode
 
@@ -2423,7 +2423,9 @@ script:
       - if:
           condition:
             lambda: |-
-              return !id(music_active) && !id(assist_return_to_ma) &&
+              return !id(music_active) &&
+                  !id(assist_return_to_ma) &&
+                  !id(assist_return_to_local_radio) &&
                   id(sendspin_media_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING &&
                   id(radio_speaker).is_stopped();
           then:
@@ -2450,14 +2452,15 @@ script:
           condition:
             lambda: |-
               return id(radio_speaker).is_stopped() || id(music_active) ||
-                  id(assist_return_to_ma) || id(va).is_running();
+                  id(assist_return_to_ma) || id(assist_return_to_local_radio) || id(va).is_running();
           timeout: 8s
       - if:
           condition:
             and:
               - lambda: |-
                   return !id(music_active) && !id(mic_muted) &&
-                      !id(assist_return_to_ma) && !id(va).is_running() &&
+                      !id(assist_return_to_ma) && !id(assist_return_to_local_radio) &&
+                      !id(va).is_running() &&
                       id(sendspin_media_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING &&
                       id(radio_speaker).is_stopped();
               - not:
