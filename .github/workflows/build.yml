@@ -29,22 +29,24 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: muse-radio-firmware
-          path: ${{ steps.build.outputs.firmware-path }}/*.bin
+          path: .esphome/build/**/firmware*.bin
 
       - name: Attach binaries to GitHub Release
         if: github.event_name == 'release'
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.build.outputs.firmware-path }}/*.bin
+          files: .esphome/build/**/firmware*.bin
 
-      - name: Update GitHub Pages factory binary on Release
-        if: github.event_name == 'release'
+      - name: Update GitHub Pages factory binary
+        if: github.event_name == 'release' || github.event_name == 'workflow_dispatch'
         run: |
-          FACTORY_BIN=$(find "${{ steps.build.outputs.firmware-path }}" -name "*factory.bin" | head -n 1)
+          FACTORY_BIN=$(find .esphome/build -name "firmware.factory.bin" | head -n 1)
+          echo "Found factory binary at: $FACTORY_BIN"
           cp "$FACTORY_BIN" docs/firmware.factory.bin
-          sed -i "s/\"version\": \".*\"/\"version\": \"${GITHUB_REF_NAME}\"/" docs/manifest.json
+          VERSION="${GITHUB_REF_NAME:-latest}"
+          sed -i "s/\"version\": \".*\"/\"version\": \"${VERSION}\"/" docs/manifest.json
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@://github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/firmware.factory.bin docs/manifest.json
-          git commit -m "chore: update web installer binary for ${GITHUB_REF_NAME}" || exit 0
+          git commit -m "chore: update web installer binary for ${VERSION}" || exit 0
           git push origin HEAD:main
