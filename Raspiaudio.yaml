@@ -12,7 +12,8 @@ substitutions:
 
 packages:
   - !include common/base_text_sensor.yaml
-
+  - !include stations/stations.yaml 
+    
 # === 1. SYSTÈME, RÉSEAU & BUS MATÉRIELS (I2C, SPI, I2S) ===
 
 esphome:
@@ -1264,15 +1265,18 @@ select:
     entity_category: config
     optimistic: true
     restore_value: true
-    initial_option: "1 - France Info"
+    initial_option: "${st_1_name}"
     options:
-      - "1 - France Info"
-      - "2 - France Inter"
-      - "3 - France Musique"
-      - "4 - FIP"
-      - "5 - Nostalgie"
-      - "6 - Radio Classique"
-      - "7 - Station 4 (URL)"
+      - "${st_1_name}"
+      - "${st_2_name}"
+      - "${st_3_name}"
+      - "${st_4_name}"
+      - "${st_5_name}"
+      - "${st_6_name}"
+      - "${st_7_name}"
+      - "${st_8_name}"
+      - "${st_9_name}"
+      - "10 - Station 4 (URL)"
     on_value:
       then:
         - light.turn_on:
@@ -1292,7 +1296,6 @@ select:
               lambda: 'return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;'
             then:
               - script.execute: debounced_switch_local_radio
-
                 
 text_sensor:
 
@@ -1824,61 +1827,84 @@ script:
             - if:
                 condition:
                   lambda: |-
-                    return id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
-                           id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
+                    const int custom_idx = static_cast<int>(id(local_radio_select).size()) - 1;
+                    auto idx = id(local_radio_select).active_index();
+                    const int i = idx.has_value() ? static_cast<int>(idx.value()) : 0;
+                    if (i == custom_idx) {
+                      return id(radio_station_4).state.find_first_not_of(" \t\r\n") != std::string::npos;
+                    }
+                    return true;
                 then:
-                  - media_player.pause: sendspin_media_player
-                  - media_player.stop: music_source_player
-                  - wait_until:
+                  - logger.log: "Démarrage de la radio web locale"
+                  - if:
                       condition:
-                        lambda: 'return id(music_source_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING;'
-                      timeout: 4s
+                        lambda: |-
+                          return id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                                 id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
+                      then:
+                        - media_player.pause: sendspin_media_player
+                        - media_player.stop: music_source_player
+                        - wait_until:
+                            condition:
+                              lambda: 'return id(music_source_player).state != media_player::MEDIA_PLAYER_STATE_PLAYING;'
+                            timeout: 4s
+                        - delay: 150ms
+                  - media_player.stop:
+                      id: local_radio_player
+                      announcement: false
                   - delay: 150ms
-            - media_player.stop:
-                id: local_radio_player
-                announcement: false
-            - delay: 150ms
-            - micro_wake_word.stop:
-            - script.execute: apply_local_codec_volume
-            - media_player.volume_set:
-                id: local_radio_player
-                volume: !lambda 'return id(Vol);'
-            - media_player.play_media:
-                id: local_radio_player
-                announcement: false
-                media_url: !lambda |-
-                  auto idx = id(local_radio_select).active_index();
-                  int i = idx.has_value() ? idx.value() : 0;
-                  switch (i) {
-                    case 0: return std::string("http://direct.franceinfo.fr/live/franceinfo-midfi.mp3");
-                    case 1: return std::string("http://direct.franceinter.fr/live/franceinter-midfi.mp3");
-                    case 2: return std::string("https://direct.francemusique.fr/live/francemusique-midfi.mp3");
-                    case 3: return std::string("http://direct.fipradio.fr/live/fip-midfi.mp3");
-                    case 4: return std::string("https://streaming.nrjaudio.fm/oug7girb92oc?origine=fluxradios");
-                    case 5: return std::string("http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3");
-                    case 6: return id(radio_station_4).state;
-                    default: return std::string("http://direct.franceinfo.fr/live/franceinfo-midfi.mp3");
-                  }
-            - delay: 100ms
-            - media_player.volume_set:
-                id: local_radio_player
-                volume: !lambda 'return id(Vol);'
-            - speaker.volume_set:
-                id: radio_speaker
-                volume: !lambda 'return id(Vol);'
-            - lambda: |-
-                auto idx = id(local_radio_select).active_index();
-                int i = idx.has_value() ? idx.value() : 0;
-                switch (i) {
-                  case 0: id(preset_message) = "FRANCE INFO"; break;
-                  case 1: id(preset_message) = "FRANCE INTER"; break;
-                  case 2: id(preset_message) = "FRANCE MUSIQUE"; break;
-                  case 3: id(preset_message) = "FIP"; break;
-                  case 4: id(preset_message) = "NOSTALGIE"; break;
-                  case 5: id(preset_message) = "RADIO CLASSIQUE"; break;
-                  default: id(preset_message) = "WEB RADIO"; break;
-                }
-            - script.execute: show_preset_feedback
+                  - micro_wake_word.stop:
+                  - script.execute: apply_local_codec_volume
+                  - media_player.volume_set:
+                      id: local_radio_player
+                      volume: !lambda 'return id(Vol);'
+                  - media_player.play_media:
+                      id: local_radio_player
+                      announcement: false
+                      media_url: !lambda |-
+                        static const char* urls[] = {
+                          "${st_1_url}",
+                          "${st_2_url}",
+                          "${st_3_url}",
+                          "${st_4_url}",
+                          "${st_5_url}",
+                          "${st_6_url}",
+                          "${st_7_url}",
+                          "${st_8_url}",
+                          "${st_9_url}"
+                        };
+                        const int count = sizeof(urls) / sizeof(urls);
+                        const int custom_idx = static_cast<int>(id(local_radio_select).size()) - 1;
+                        auto idx = id(local_radio_select).active_index();
+                        const int i = idx.has_value() ? static_cast<int>(idx.value()) : 0;
+                        if (i == custom_idx) {
+                          return id(radio_station_4).state;
+                        }
+                        if (i >= 0 && i < count) {
+                          return std::string(urls[i]);
+                        }
+                        return std::string(urls);
+                  - delay: 100ms
+                  - media_player.volume_set:
+                      id: local_radio_player
+                      volume: !lambda 'return id(Vol);'
+                  - speaker.volume_set:
+                      id: radio_speaker
+                      volume: !lambda 'return id(Vol);'
+                  - lambda: |-
+                      std::string label = id(local_radio_select).current_option();
+                      size_t dash = label.find(" - ");
+                      if (dash != std::string::npos) {
+                        label = label.substr(dash + 3);
+                      }
+                      for (auto &c : label) {
+                        c = std::toupper(static_cast<unsigned char>(c));
+                      }
+                      id(preset_message) = label.empty() ? "WEB RADIO" : label;
+                  - script.execute: show_preset_feedback
+                else:
+                  - lambda: 'id(preset_message) = "NO RADIO";'
+                  - script.execute: show_preset_feedback
               
   - id: temporary_assist
     mode: single
