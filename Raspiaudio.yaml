@@ -1,7 +1,7 @@
 # 2026.11.0
 
-# RAM:   [====      ]  38.9% (used 132879 bytes from 341760 bytes)
-# Flash: [========  ]  81.9% (used 3220215 bytes from 3932160 bytes)
+# RAM:   [====      ]  39.0% (used 133431 bytes from 341760 bytes)
+# Flash: [========  ]  82.2% (used 3232915 bytes from 3932160 bytes)
 
 substitutions:
   name: raspiaudio-radio
@@ -115,6 +115,20 @@ captive_portal:
 
 improv_serial:
 
+time:
+  - platform: homeassistant
+    id: ha_time
+    timezone: Europe/Paris
+    on_time:
+      - seconds: 0
+        minutes: '*'
+        then:
+          - if:
+              condition:
+                lambda: 'return id(clock_screensaver_active) && id(myDisplay).is_ready();'
+              then:
+                - component.update: myDisplay
+  
 remote_receiver:
   id: ir_receiver
   pin:
@@ -513,13 +527,16 @@ globals:
   - id: assist_return_to_local_radio
     type: bool
     initial_value: 'false'
+  - id: clock_screensaver_active
+    type: bool
+    initial_value: 'false'
     
 interval:
   - interval: 1s
     then:
       - if:
           condition:
-            light.is_on: screen_backlight
+            lambda: 'return !id(clock_screensaver_active) && !id(music_active) && id(phase) == 1;'
           then:
             - if:
                 condition:
@@ -527,14 +544,16 @@ interval:
                 then:
                   - lambda: id(lightTO)++;
                 else:
-                  - lambda: id(lightTO) = 0;
-                  - light.turn_off: screen_backlight
-          else:
-            - if:
-                condition:
-                  lambda: 'return id(phase) == 0;'
-                then:
-                  - light.turn_on: screen_backlight
+                  - lambda: |-
+                      id(lightTO) = 0;
+                      id(clock_screensaver_active) = true;
+                      if (id(myDisplay).is_ready()) {
+                        id(myDisplay).show_page(clockP);
+                        id(myDisplay).update();
+                      }
+                  - light.turn_on:
+                      id: screen_backlight
+                      brightness: 25%
       - if:
           condition:
             lambda: 'return id(volume_display_active);'
@@ -651,7 +670,22 @@ font:
     id: ma_font_status
     size: 14
     glyphs: *ma_glyphs
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 600
+    id: ma_font_clock
+    size: 64
+    glyphs: "0123456789:"
+  - file:
+      type: gfonts
+      family: Figtree
+      weight: 600
+    id: clock_font_time
+    size: 64
+    glyphs: "0123456789:-"
 
+    
 color:
   - id: green
     hex: '75D15F'
@@ -918,6 +952,72 @@ display:
           it.image(0, 0, id(muteMicIm));
           id(draw_status_overlay).execute(&it, true, true, false);
 
+      - id: clockP
+        lambda: |-
+          const int w = it.get_width();
+          const int h = it.get_height();
+
+          it.filled_rectangle(0, 0, w, h, id(ma_bg));
+          it.filled_rectangle(12, 12, w - 24, h - 24, id(ma_panel));
+          it.rectangle(12, 12, w - 24, h - 24, id(ma_accent));
+
+          auto now = id(ha_time).now();
+          char time_str[10];
+          char date_str[32];
+
+          if (now.is_valid()) {
+            snprintf(time_str, sizeof(time_str), "%02d:%02d", now.hour, now.minute);
+            static const char* jours[] = {"Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"};
+            static const char* mois[] = {"Jan", "Fev", "Mar", "Avr", "Mai", "Juin", "Juil", "Aout", "Sept", "Oct", "Nov", "Dec"};
+            const char* j = (now.day_of_week >= 1 && now.day_of_week <= 7) ? jours[now.day_of_week - 1] : "";
+            const char* m = (now.month >= 1 && now.month <= 12) ? mois[now.month - 1] : "";
+            snprintf(date_str, sizeof(date_str), "%s %d %s %d", j, now.day_of_month, m, now.year);
+          } else {
+            snprintf(time_str, sizeof(time_str), "--:--");
+            snprintf(date_str, sizeof(date_str), "Synchronisation...");
+          }
+
+          // Heure centrale
+          it.printf(w / 2, 46, id(clock_font_time), id(ma_text), TextAlign::TOP_CENTER, "%s", time_str);
+
+          // Date sous l'heure
+          it.printf(w / 2, 126, id(ma_font_heading), id(ma_accent), TextAlign::TOP_CENTER, "%s", date_str);
+
+          // Ligne séparatrice basse
+          it.filled_rectangle(28, 166, w - 56, 2, id(ma_bar_bg));
+
+          // Météo en bas à gauche
+          char temp_str[16];
+          if (std::isnan(id(ha_weather_temperature).state)) {
+            snprintf(temp_str, sizeof(temp_str), "--°C");
+          } else {
+            snprintf(temp_str, sizeof(temp_str), "%.1f °C", id(ha_weather_temperature).state);
+          }
+          it.printf(32, 184, id(ma_font_metadata), id(ma_text), TextAlign::TOP_LEFT, "%s", temp_str);
+
+          if (id(ha_weather_condition).has_state()) {
+            id(draw_weather_icon).execute(&it, 130, 193, id(ha_weather_condition).state);
+          }
+
+          // Batterie en bas à droite
+          const int battery_x = w - 65;
+          const int battery_y = 185;
+          it.rectangle(battery_x, battery_y, 30, 12, id(ma_text));
+          it.filled_rectangle(battery_x + 30, battery_y + 4, 3, 4, id(ma_text));
+          it.filled_rectangle(battery_x + 2, battery_y + 2, 26, 8, id(ma_bar_bg));
+          const float battery = id(battery_percent).state;
+          if (id(battery_percent).has_state() && std::isfinite(battery)) {
+            const int percent = int(clamp(battery, 0.0f, 100.0f) + 0.5f);
+            const Color battery_color = percent < 20 ? id(ma_battery_low) :
+                percent < 50 ? id(ma_accent) : id(ma_bar_fill);
+            const int battery_fill = 26 * percent / 100;
+            if (battery_fill > 0) {
+              it.filled_rectangle(battery_x + 2, battery_y + 2, battery_fill, 8, battery_color);
+            }
+            it.printf(battery_x + 15, battery_y + 14, id(ma_font_status), id(ma_text_muted),
+                      TextAlign::TOP_CENTER, "%d%%", percent);
+          }
+          
 # === 4. CAPTEURS, ENCODEURS & BOUTONS ===
 
 sensor:
@@ -2303,8 +2403,12 @@ script:
   - id: reset_display
     then:
       - logger.log: "===> reset_display"
+      - light.turn_on:
+          id: screen_backlight
+          brightness: 100%
       - lambda: |-
           id(lightTO) = 0;
+          id(clock_screensaver_active) = false;
           const bool in_temp_assist = id(assist_return_to_ma) || id(assist_return_to_local_radio);
           if ((id(music_active) ||
                id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING) &&
@@ -2533,3 +2637,4 @@ script:
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
       - script.execute: schedule_volume_update
+
