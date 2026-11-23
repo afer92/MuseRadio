@@ -1,5 +1,9 @@
 # 📻 Raspiaudio Radio — ESPHome Firmware (Music Assistant, Voice Assistant & Standalone Web Radio)
 
+[![GitHub Release](https://shields.io)](https://github.com)
+[![License: GPL v3](https://shields.io)](https://gnu.org)
+[![ESPHome](https://shields.io)](https://esphome.io)
+
 ![Raspiaudio Radio Screen Preview](docs/screen.jpg)
 
 🌐 **[English](#-english)** | **[Français](#-français)**
