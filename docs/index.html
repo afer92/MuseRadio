@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MuseRadio — ESPHome Web Installer</title>
+  <script type="module" src="https://unpkg.com"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #0d1117;
+      color: #c9d1d9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 12px;
+      max-width: 540px;
+      padding: 32px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin: 16px 0;
+      border: 1px solid #30363d;
+    }
+    h1 { color: #ffffff; margin-top: 0; }
+    p { line-height: 1.5; color: #8b949e; }
+    esp-web-install-button {
+      margin: 24px 0 12px;
+      display: inline-block;
+    }
+    .note {
+      font-size: 0.85rem;
+      margin-top: 16px;
+      color: #8b949e;
+    }
+    a { color: #58a6ff; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>📻 MuseRadio Installer</h1>
+    <p>Installez le firmware ESPHome complet sur votre carte <strong>Raspiaudio Radio (ESP32-S3)</strong> directement depuis votre navigateur.</p>
+    <img src="screen.jpg" alt="Aperçu écran MuseRadio" />
+
+    <div>
+      <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+    </div>
+
+    <p class="note">
+      ⚠️ Utilisez <strong>Google Chrome</strong> ou <strong>Microsoft Edge</strong> sur ordinateur et connectez la carte en USB.<br>
+      Code source & documentation sur <a href="https://github.com">GitHub</a>.
+    </p>
+  </div>
+</body>
+</html>
