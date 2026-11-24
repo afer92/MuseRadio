@@ -15,6 +15,7 @@ managed_components/
 
 # Fichiers binaires et firmwares compilés
 *.bin
+!docs/firmware.factory.bin
 *.elf
 *.map
 *.ota
