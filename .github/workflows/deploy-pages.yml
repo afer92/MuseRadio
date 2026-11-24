@@ -51,8 +51,15 @@ jobs:
         run: |
           mkdir -p _site
           cp -r docs/* _site/
-          cp "${{ steps.build.outputs.name }}/manifest.json" _site/
+          ls -la "${{ steps.build.outputs.name }}"
+          MANIFEST_FILE=$(find "${{ steps.build.outputs.name }}" -name "*manifest.json" | head -n 1)
+          if [ -z "$MANIFEST_FILE" ]; then
+            echo "Erreur : aucun fichier manifest.json généré !"
+            exit 1
+          fi
+          cp "$MANIFEST_FILE" _site/manifest.json
           cp "${{ steps.build.outputs.name }}"/*.factory.bin _site/
+          cat _site/manifest.json
 
       - name: Uploader l'artefact GitHub Pages
         uses: actions/upload-pages-artifact@v3
