@@ -13,6 +13,8 @@
 
 ## 🇬🇧 English
 
+> **Note:** This project is derived from [RASPIAUDIO/esphomeRadio](https://github.com/RASPIAUDIO/esphomeRadio).
+
 Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-S3)** board, seamlessly integrating:
 * **Music Assistant (via Sendspin)**: 48 kHz FLAC multiroom playback with metadata display and group volume control.
 * **Home Assistant Voice Assistant & microWakeWord**: Local wake word detection (*Okay Nabu*, *Hey Jarvis*, *Hey Mycroft*, *Stop*) with smart switching of the shared I2S audio bus.
@@ -169,6 +171,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 
 ![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
 
+> **Note:** Ces projet est derivé de [RASPIAUDIO/esphomeRadio](https://github.com/RASPIAUDIO/esphomeRadio).
 
 # 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
  
