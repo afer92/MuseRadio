@@ -9,12 +9,12 @@ on:
       - 'common/**'
       - 'stations/**'
       - 'images/**'
-      - 'docs/**'
+      - 'docs/index.html'
       - '.github/workflows/deploy-pages.yml'
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -47,19 +47,25 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Préparer le site GitHub Pages
+      - name: Copier manifest.json et .bin dans docs/ et pousser sur GitHub
         run: |
-          mkdir -p _site
-          cp -r docs/* _site/
-          ls -la "${{ steps.build.outputs.name }}"
           MANIFEST_FILE=$(find "${{ steps.build.outputs.name }}" -name "*manifest.json" | head -n 1)
           if [ -z "$MANIFEST_FILE" ]; then
             echo "Erreur : aucun fichier manifest.json généré !"
             exit 1
           fi
-          cp "$MANIFEST_FILE" _site/manifest.json
-          cp "${{ steps.build.outputs.name }}"/*.factory.bin _site/
-          cat _site/manifest.json
+          cp "$MANIFEST_FILE" docs/manifest.json
+          cp "${{ steps.build.outputs.name }}"/*.bin docs/
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@://github.com"
+          git add -f docs/manifest.json docs/*.bin
+          git commit -m "chore: update compiled firmware in docs/ [skip ci]" || exit 0
+          git push origin HEAD:main
+
+      - name: Préparer le site GitHub Pages
+        run: |
+          mkdir -p _site
+          cp -r docs/* _site/
 
       - name: Uploader l'artefact GitHub Pages
         uses: actions/upload-pages-artifact@v5
