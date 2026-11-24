@@ -70,6 +70,7 @@ esp32:
       CONFIG_ESP32S3_DEFAULT_CPU_FREQ_240: "y"
       CONFIG_ESP32S3_DATA_CACHE_64KB: "y"
       CONFIG_ESP32S3_DATA_CACHE_LINE_64B: "y"
+      CONFIG_ESP_TASK_WDT_TIMEOUT_S: "10"
 
 preferences:
   flash_write_interval: 5s
@@ -128,6 +129,7 @@ time:
                 lambda: 'return id(clock_screensaver_active) && id(myDisplay).is_ready();'
               then:
                 - component.update: myDisplay
+                - script.execute: update_clock_brightness
   
 remote_receiver:
   id: ir_receiver
@@ -565,7 +567,7 @@ interval:
           then:
             - if:
                 condition:
-                  lambda: 'return id(lightTO) < 3600;'
+                  lambda: 'return id(lightTO) < 60;'
                 then:
                   - lambda: id(lightTO)++;
                 else:
@@ -576,9 +578,7 @@ interval:
                         id(myDisplay).show_page(clockP);
                         id(myDisplay).update();
                       }
-                  - light.turn_on:
-                      id: screen_backlight
-                      brightness: 25%
+                  - script.execute: update_clock_brightness
       - if:
           condition:
             lambda: 'return id(volume_display_active);'
@@ -1109,9 +1109,9 @@ sensor:
     id: button_adc
     pin: GPIO1
     attenuation: auto
-    update_interval: 0.1s
+    update_interval: 50ms
     on_value_range:
-      - above: 3.0
+      - above: 2.50
         then:
           - binary_sensor.template.publish:
               id: btn_confirm
@@ -1125,26 +1125,26 @@ sensor:
           - binary_sensor.template.publish:
               id: btn_3
               state: OFF
-      - above: 0.41
-        below: 0.45
+      - above: 0.35
+        below: 0.55
         then:
           - binary_sensor.template.publish:
               id: btn_3
               state: ON
-      - above: 0.80
-        below: 0.84
+      - above: 0.72
+        below: 0.95
         then:
           - binary_sensor.template.publish:
               id: btn_confirm
               state: ON
-      - above: 1.50
-        below: 1.61
+      - above: 1.40
+        below: 1.70
         then:
           - binary_sensor.template.publish:
               id: btn_1
               state: ON
-      - above: 1.98
-        below: 2.03
+      - above: 1.85
+        below: 2.15
         then:
           - binary_sensor.template.publish:
               id: btn_2
@@ -1174,8 +1174,7 @@ sensor:
         - sensor.template.publish:
             id: battery_percent
             state: !lambda "return x;"
-        - lambda: |-
-            if (id(myDisplay).is_ready()) id(myDisplay).update();
+        - script.execute: request_display_update
 
   - platform: template
     name: Battery
@@ -1220,8 +1219,7 @@ sensor:
     update_interval: 15s
     on_value:
       then:
-        - lambda: |-
-            if (id(myDisplay).is_ready()) id(myDisplay).update();
+        - script.execute: request_display_update
 
 binary_sensor:
   - platform: gpio
@@ -1235,12 +1233,10 @@ binary_sensor:
     entity_category: diagnostic
     on_press:
       - logger.log: "USB power detected"
-      - lambda: |-
-          if (id(myDisplay).is_ready()) id(myDisplay).update();
+      - script.execute: request_display_update
     on_release:
       - logger.log: "USB power removed"
-      - lambda: |-
-          if (id(myDisplay).is_ready()) id(myDisplay).update();
+      - script.execute: request_display_update
 
   - platform: gpio
     pin:
@@ -1456,25 +1452,21 @@ text_sensor:
 
   - id: text_request
     platform: template
-    on_value:
-      lambda: |-
-        std::string s = x;
-        if (s.size() > 40) {
-          size_t end = 39;
-          while (end > 0 && (static_cast<unsigned char>(s[end]) & 0xC0) == 0x80) --end;
-          id(text_request).publish_state(s.substr(0, end) + "...");
-        }
+    filters:
+      - lambda: |-
+          if (x.size() <= 40) return x;
+          size_t end = 37;
+          while (end > 0 && (static_cast<unsigned char>(x[end]) & 0xC0) == 0x80) --end;
+          return x.substr(0, end) + "...";
 
   - id: text_response
     platform: template
-    on_value:
-      lambda: |-
-        std::string s = x;
-        if (s.size() > 32) {
-          size_t end = 31;
-          while (end > 0 && (static_cast<unsigned char>(s[end]) & 0xC0) == 0x80) --end;
-          id(text_response).publish_state(s.substr(0, end) + "...");
-        }
+    filters:
+      - lambda: |-
+          if (x.size() <= 32) return x;
+          size_t end = 29;
+          while (end > 0 && (static_cast<unsigned char>(x[end]) & 0xC0) == 0x80) --end;
+          return x.substr(0, end) + "...";
 
   - platform: template
     name: "ma_player_entity_id"
@@ -1783,7 +1775,7 @@ script:
     parameters:
       station: string
     then:
-      - lambda: 'ESP_LOGI("play_radio_preset", "La station est : %s", station.c_str());'
+      - lambda: 'ESP_LOGI("play_radio_preset", "Lancement station : %s", station.c_str());'
       - if:
           condition:
             lambda: |-
@@ -1798,6 +1790,8 @@ script:
           condition:
             lambda: return station.find_first_not_of(" \t\r\n") != std::string::npos;
           then:
+            - lambda: 'id(preset_message) = "LOADING...";'
+            - script.execute: show_preset_feedback
             - homeassistant.action:
                 action: media_player.play_media
                 data:
@@ -1805,18 +1799,27 @@ script:
                   enqueue: replace
                 data_template:
                   entity_id: |-
-                    {% set configured = player_entity | trim %} {% if configured and states(configured) not in ['unknown', 'unavailable']
-                          and state_attr(configured, 'mass_player_type') is not none %}
+                    {% set configured = player_entity | trim %}
+                    {% if configured and states(configured) not in ['unknown', 'unavailable'] %}
                       {{ configured }}
                     {% else %}
                       {% set ns = namespace(entity_id='') %}
                       {% for player in states.media_player %}
                         {% set label = (player.entity_id ~ ' ' ~ player.name) | lower %}
-                        {% if ns.entity_id == '' and player.attributes.mass_player_type is defined
-                              and 'radio' in label %}
+                        {% if ns.entity_id == '' and player.state not in ['unknown', 'unavailable']
+                              and 'raspiaudio' in label %}
                           {% set ns.entity_id = player.entity_id %}
                         {% endif %}
                       {% endfor %}
+                      {% if ns.entity_id == '' %}
+                        {% for player in states.media_player %}
+                          {% set label = (player.entity_id ~ ' ' ~ player.name) | lower %}
+                          {% if ns.entity_id == '' and player.state not in ['unknown', 'unavailable']
+                                and 'radio' in label %}
+                            {% set ns.entity_id = player.entity_id %}
+                          {% endif %}
+                        {% endfor %}
+                      {% endif %}
                       {{ ns.entity_id }}
                     {% endif %}
                   media_content_id: '{{ station_name }}'
@@ -1826,10 +1829,10 @@ script:
                 on_error:
                   - lambda: |-
                       id(preset_message) = "PLAY FAILED";
-                      ESP_LOGW("radio_preset", "Unable to play station: %s", error.c_str());
+                      ESP_LOGW("radio_preset", "Erreur lecture station : %s", error.c_str());
                   - script.execute: show_preset_feedback
           else:
-            - lambda: id(preset_message) = "NO RADIO";
+            - lambda: 'id(preset_message) = "NO RADIO";'
             - script.execute: show_preset_feedback
 
   - id: save_radio_preset
@@ -1837,7 +1840,9 @@ script:
     parameters:
       preset: int
     then:
-      - lambda: 'ESP_LOGI("play_radio_preset", "preset est : %u", preset);'
+      - logger.log:
+          format: "Appui long détecté -> sauvegarde preset %d"
+          args: ['preset']
       - light.turn_on:
           id: screen_backlight
           brightness: 100%
@@ -1845,19 +1850,21 @@ script:
           action: music_assistant.get_queue
           data_template:
             entity_id: |-
-              {% set configured = player_entity | trim %} {% if configured and states(configured) not in ['unknown', 'unavailable']
-                    and state_attr(configured, 'mass_player_type') is not none %}
+              {% set configured = player_entity | trim %}
+              {% if configured and states(configured) not in ['unknown', 'unavailable'] %}
                 {{ configured }}
               {% else %}
-                {% set ns = namespace(named='', metadata='') %}
+                {% set ns = namespace(raspiaudio='', named='', metadata='') %}
                 {% for player in states.media_player %}
-                  {% if player.attributes.mass_player_type is defined
-                        and player.state not in ['unknown', 'unavailable'] %}
+                  {% if player.state not in ['unknown', 'unavailable'] %}
                     {% set label = (player.entity_id ~ ' ' ~ player.name) | lower %}
                     {% set same_album = current_album | length > 0
                           and player.attributes.media_album_name | default('') == current_album %}
                     {% set same_title = current_title | length > 0
                           and player.attributes.media_title | default('') == current_title %}
+                    {% if ns.raspiaudio == '' and 'raspiaudio' in label %}
+                      {% set ns.raspiaudio = player.entity_id %}
+                    {% endif %}
                     {% if ns.named == '' and 'radio' in label %}
                       {% set ns.named = player.entity_id %}
                     {% endif %}
@@ -1866,17 +1873,30 @@ script:
                     {% endif %}
                   {% endif %}
                 {% endfor %}
-                {{ ns.named if ns.named else ns.metadata }}
+                {{ ns.raspiaudio if ns.raspiaudio else (ns.named if ns.named else ns.metadata) }}
               {% endif %}
           variables:
             player_entity: !lambda return id(ma_player_entity_id);
             current_title: !lambda return id(ma_media_title).state;
             current_album: !lambda return id(ma_media_album).state;
           capture_response: true
-          response_template: '{% set entity_id = response.keys() | list | first | default('''') %}{% set item = response[entity_id].get(''current_item'') if entity_id else none %}{% set media_item = item.get(''media_item'') if item else none %}{% set uri = state_attr(entity_id, ''media_content_id'') or (media_item.get(''uri'', '''') if media_item else '''') %}{{ entity_id }}|@|{{ uri }}'
+          response_template: |-
+            {% set entity_id = response.keys() | list | first | default('') %}
+            {% set q = response.get(entity_id, {}) if entity_id else {} %}
+            {% set item = q.get('current_item') or {} %}
+            {% set media_item = item.get('media_item') or {} %}
+            {% set uri = media_item.get('uri') or item.get('uri') or state_attr(entity_id, 'media_content_id') or '' %}
+            {{ entity_id }}|@|{{ uri }}
           on_success:
             - lambda: |-
-                const std::string payload = response["response"].as<std::string>();
+                std::string payload;
+                if (response["response"].is<const char*>()) {
+                  payload = response["response"].as<std::string>();
+                } else {
+                  serializeJson(response, payload);
+                }
+                ESP_LOGI("radio_preset", "Réponse MA brute : %s", payload.c_str());
+
                 const size_t separator = payload.find("|@|");
                 const std::string entity_id = separator == std::string::npos
                     ? "" : payload.substr(0, separator);
@@ -1886,7 +1906,7 @@ script:
                                    uri.find("://") != std::string::npos;
                 if (!valid) {
                   id(preset_message) = "NO RADIO";
-                  ESP_LOGW("radio_preset", "No usable station in MA response: %s", payload.c_str());
+                  ESP_LOGW("radio_preset", "Aucune station exploitable dans : %s", payload.c_str());
                   return;
                 }
                 if (uri.size() > 255) {
@@ -1907,13 +1927,13 @@ script:
                 call.set_value(uri);
                 call.perform();
                 id(preset_message) = "MEMO " + std::to_string(preset) + " OK";
-                ESP_LOGI("radio_preset", "Station stored on button %d via %s",
-                         preset, entity_id.c_str());
+                ESP_LOGI("radio_preset", "Station %s enregistrée sur bouton %d via %s",
+                         uri.c_str(), preset, entity_id.c_str());
             - script.execute: show_preset_feedback
           on_error:
             - lambda: |-
                 id(preset_message) = "NO RADIO";
-                ESP_LOGW("radio_preset", "Unable to read MA queue: %s", error.c_str());
+                ESP_LOGW("radio_preset", "Erreur lecture file MA : %s", error.c_str());
             - script.execute: show_preset_feedback
 
   - id: schedule_music_refresh
@@ -2267,6 +2287,15 @@ script:
             - lambda: 'id(phase) = 3;'
             - script.execute: reset_display
             - voice_assistant.start:
+
+  - id: request_display_update
+    mode: restart
+    then:
+      - delay: 50ms
+      - lambda: |-
+          if (id(myDisplay).is_ready()) {
+            id(myDisplay).update();
+          }
 
   - id: mute_unmute
     then:
@@ -2655,3 +2684,15 @@ script:
           id(volume_display_active) = true;
           id(volume_display_timer) = 0;
       - script.execute: schedule_volume_update
+
+  - id: update_clock_brightness
+    then:
+      - light.turn_on:
+          id: screen_backlight
+          brightness: !lambda |-
+            auto now = id(ha_time).now();
+            if (now.is_valid() && now.hour >= 7 && now.hour < 22) {
+              return 0.75f; // 75 % en journée (7h00 - 21h59)
+            }
+            return 0.25f;   // 25 % la nuit (22h00 - 6h59)
+
