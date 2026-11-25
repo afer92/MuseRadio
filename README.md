@@ -19,7 +19,7 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 * **Music Assistant (via Sendspin)**: 48 kHz FLAC multiroom playback with metadata display and group volume control.
 * **Home Assistant Voice Assistant & microWakeWord**: Local wake word detection (*Okay Nabu*, *Hey Jarvis*, *Hey Mycroft*, *Stop*) with smart switching of the shared I2S audio bus.
 * **Standalone Local Web Radio (MP3)**: Direct streaming of Icecast/HTTP radio stations without relying on Home Assistant or Music Assistant.
-* **Event-Driven GUI (ST7789V 320×240)**: High-performance display (`update_interval: never`) featuring Home Assistant weather (temperature + vector icon), battery gauge, Wi-Fi signal strength, and visual action feedback.
+* **Event-Driven GUI & Smart Clock Screensaver (ST7789V 320×240)**: High-performance display (`update_interval: never`) featuring Home Assistant weather (temperature + vector icon), battery gauge, Wi-Fi signal strength, visual action feedback, and an automatic clock screensaver with day/night brightness control.
 
 ---
 
@@ -37,7 +37,11 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 * **Local Detection**: Supports `okay_nabu`, `hey_jarvis`, `hey_mycroft`, and `stop` models with on-the-fly sensitivity adjustment from Home Assistant (*Slightly*, *Moderately*, *Very sensitive*).
 * **Temporary Music Interruption (`temporary_assist`)**: Pressing the **Assist button (`GPIO45`)** or the IR remote pauses the Sendspin group, releases the shared I2S bus, listens to your voice command, and automatically resumes music playback afterward.
 
-### 3. Advanced Hardware Management
+### 3. Clock Screensaver & Adaptive Brightness
+* **Automatic Standby (`clockP`)**: After `60 s` of inactivity (`lightTO`), the screen switches to a clock screensaver displaying the current time, date, outdoor temperature, weather icon, and battery level.
+* **Day/Night Backlight (`update_clock_brightness`)**: Automatically adjusts backlight intensity to **75%** during the day (`07:00–21:59`) and **25%** at night (`22:00–06:59`).
+
+### 4. Advanced Hardware Management
 * **ES8388 Audio Codec**:
   * Automatic headphone jack detection (`GPIO10`) with hardware I2C register switching between the internal speaker and line/headphone output.
   * Fine gain curve on registers `0x2E`–`0x31` for smooth control at very low volume levels (`< 10%`).
@@ -200,7 +204,15 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 * **Détection locale** : prise en charge des modèles `okay_nabu`, `hey_jarvis`, `hey_mycroft` et `stop` avec réglage de sensibilité à la volée depuis Home Assistant (*Slightly*, *Moderately*, *Very sensitive*).
 * **Interruption temporaire de la musique (`temporary_assist`)** : un appui sur le bouton **Assist (`GPIO45`)** ou la télécommande IR met en pause le groupe Sendspin, libère le bus I2S partagé, écoute la commande vocale, puis relance automatiquement la musique.
 
-### 3. Gestion matérielle avancée
+### 3. Écran de veille Horloge & Gestion matérielle avancée
+* **Écran horloge adaptatif (`clockP`)** : après `60 s` d'inactivité en veille, l'écran affiche l'heure, la date, la météo et le niveau de batterie, en ajustant automatiquement le rétroéclairage (`75 %` de 7h00 à 21h59, `25 %` la nuit).
+* **Codec Audio ES8388** :
+  * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
+  * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
+* **Alimentation & Batterie** : mesure de tension (`GPIO13`) convertie en pourcentage via une courbe polynomiale à 22 points et détection de charge USB (`GPIO21`).
+* **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute, changement de station Web Radio (Suivant / Précédent), démarrage/arrêt de la Web Radio et déclenchement de l'assistant vocal.
+
+### 4. Gestion matérielle avancée
 * **Codec Audio ES8388** :
   * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
   * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
