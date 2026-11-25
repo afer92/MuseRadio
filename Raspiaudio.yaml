@@ -1034,8 +1034,8 @@ display:
 
           // 1. Badge Micro coupé (haut gauche)
           if (id(mic_muted)) {
-            it.filled_rectangle(24, 20, 62, 18, id(ma_battery_low));
-            it.printf(55, 22, id(font_wifi_label), id(white), TextAlign::TOP_CENTER, "MIC OFF");
+            it.filled_rectangle(22, 18, 74, 22, id(ma_battery_low));
+            it.printf(59, 29, id(ma_font_status), id(white), TextAlign::CENTER, "MIC OFF");
           }
 
           // 2. Badge Alarme Home Assistant (haut centre)
@@ -1046,8 +1046,8 @@ display:
 
           // 3. Badge Charge USB (haut droite)
           if (id(usb_power_detect).state) {
-            it.filled_rectangle(w - 60, 20, 36, 18, id(ma_bar_fill));
-            it.printf(w - 42, 22, id(font_wifi_label), id(ma_bg), TextAlign::TOP_CENTER, "USB");
+            it.filled_rectangle(w - 66, 18, 44, 22, id(ma_bar_fill));
+            it.printf(w - 44, 29, id(ma_font_status), id(ma_bg), TextAlign::CENTER, "USB");
           }
           
           auto now = id(ha_time).now();
@@ -1347,7 +1347,7 @@ binary_sensor:
     name: Assist
     on_click:
       - min_length: 50ms
-        max_length: 2s
+        max_length: 800ms
         then:
           - if:
               condition:
@@ -1360,6 +1360,10 @@ binary_sensor:
                 - script.execute: temporary_assist
               else:
                 - script.execute: go_assist
+      - min_length: 1000ms
+        max_length: 4s
+        then:
+          - switch.toggle: mute_mic_switch
 
   - platform: template
     name: "Radio 1"
@@ -1441,7 +1445,13 @@ switch:
     on_turn_on:
       - lambda: 'id(mic_muted) = true;'
       - micro_wake_word.stop:
-      - script.execute: reset_display
+      - if:
+          condition:
+            lambda: 'return id(clock_screensaver_active);'
+          then:
+            - component.update: myDisplay
+          else:
+            - script.execute: reset_display
     on_turn_off:
       - lambda: 'id(mic_muted) = false;'
       - if:
@@ -1449,7 +1459,13 @@ switch:
             lambda: 'return !id(music_active) && id(phase) == 1;'
           then:
             - micro_wake_word.start:
-      - script.execute: reset_display
+      - if:
+          condition:
+            lambda: 'return id(clock_screensaver_active);'
+          then:
+            - component.update: myDisplay
+          else:
+            - script.execute: reset_display
               
 select:
   - platform: template
@@ -1707,6 +1723,27 @@ script:
               it->filled_rectangle(margin, gauge_y + margin, filled_w, inner_h, id(lime));
             }
             it->rectangle(margin, gauge_y + margin, inner_w, inner_h, id(black));
+          }
+
+          // 2b. Indicateur Micro (à droite de l'icône haut-parleur, en haut à gauche)
+          if (show_speaker && w > 64) {
+            const int mx = 36, my = 6, mw = 20, mh = 20;
+            auto mcol = id(mic_muted) ? id(red) : id(green);
+            it->filled_rectangle(mx - 1, my - 1, mw + 2, mh + 2, id(black));
+            it->filled_rectangle(mx, my, mw, mh, mcol);
+            // Capsule du micro
+            it->filled_rectangle(mx + 7, my + 3, 6, 8, id(black));
+            // Pied du micro
+            it->line(mx + 5, my + 9, mx + 5, my + 12, id(black));
+            it->line(mx + 14, my + 9, mx + 14, my + 12, id(black));
+            it->line(mx + 5, my + 12, mx + 14, my + 12, id(black));
+            it->line(mx + 10, my + 12, mx + 10, my + 16, id(black));
+            it->line(mx + 7, my + 16, mx + 13, my + 16, id(black));
+            // Barre oblique si coupé
+            if (id(mic_muted)) {
+              it->line(mx + 2, my + 2, mx + mw - 3, my + mh - 3, id(black));
+              it->line(mx + 3, my + 2, mx + mw - 2, my + mh - 3, id(black));
+            }
           }
 
           // 2. Icône Haut-parleur
