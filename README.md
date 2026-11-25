@@ -326,7 +326,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Solution** : Remplacez `"weather.forecast_maison"` en haut du fichier YAML par l'identifiant exact de votre entité météo Home Assistant (ex. `"weather.maison"` ou `"weather.openweathermap"`).
 
 ### 8. L'écran reste sur l'horloge ou est bloqué sur `"Waiting WiFi..."`
-* **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
+* **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`) avec luminosité adaptative jour/nuit. Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
 * **Bloqué sur `"Waiting WiFi..."`** : Vérifiez les identifiants dans `secrets.yaml`. En cas d'absence prolongée de réseau, l'appareil active son point d'accès de secours **`Raspiaudio-radio-full`** (mot de passe : `12345678`) permettant de reconfigurer le Wi-Fi via le portail captif.
 
 ---
@@ -336,3 +336,4 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 ## 📄 Licence
 
 Ce projet est distribué sous licence **GNU General Public License v3.0 (GPL-3.0)** — consultez le fichier [LICENSE](LICENSE) pour plus de détails.
+
