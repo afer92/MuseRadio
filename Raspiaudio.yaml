@@ -130,7 +130,25 @@ time:
               then:
                 - component.update: myDisplay
                 - script.execute: update_clock_brightness
-  
+sun:
+  id: sun_astro
+  latitude: !secret latitude
+  longitude: !secret longitude
+  on_sunrise:
+    - if:
+        condition:
+          lambda: 'return id(clock_screensaver_active);'
+        then:
+          - script.execute: update_clock_brightness
+  on_sunset:
+    - if:
+        condition:
+          lambda: 'return id(clock_screensaver_active);'
+        then:
+          - script.execute: update_clock_brightness
+
+
+                  
 remote_receiver:
   id: ir_receiver
   pin:
@@ -2686,13 +2704,21 @@ script:
       - script.execute: schedule_volume_update
 
   - id: update_clock_brightness
+    mode: restart
     then:
-      - light.turn_on:
-          id: screen_backlight
-          brightness: !lambda |-
-            auto now = id(ha_time).now();
-            if (now.is_valid() && now.hour >= 7 && now.hour < 22) {
-              return 0.75f; // 75 % en journée (7h00 - 21h59)
-            }
-            return 0.25f;   // 25 % la nuit (22h00 - 6h59)
+      - if:
+          condition:
+            lambda: 'return id(clock_screensaver_active);'
+          then:
+            - if:
+                condition:
+                  - sun.is_above_horizon:
+                then:
+                  - light.turn_on:
+                      id: screen_backlight
+                      brightness: 75%
+                else:
+                  - light.turn_on:
+                      id: screen_backlight
+                      brightness: 25%
 
