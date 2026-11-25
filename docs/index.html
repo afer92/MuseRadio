@@ -3,14 +3,35 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MuseRadio — ESPHome Web Installer</title>
-  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <title>Raspiaudio Radio (MuseRadio) — ESPHome Web Installer</title>
+  <link rel="preconnect" href="https://googleapis.com" />
+  <link rel="preconnect" href="https://gstatic.com" crossorigin />
+  <link href="https://googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script type="module" src="https://unpkg.com"></script>
 
   <style>
+    :root {
+      --ma-bg: #08131F;
+      --ma-header: #12314A;
+      --ma-panel: #0E2235;
+      --ma-footer: #163A54;
+      --ma-accent: #E4B95B;
+      --ma-text: #F2F6F9;
+      --ma-text-muted: #A7BECE;
+      --ma-bar-bg: #24455E;
+      --ma-bar-fill: #79D4C8;
+      --ma-danger: #D95C5C;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0d1117;
-      color: #c9d1d9;
+      font-family: "Figtree", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--ma-bg);
+      background-image: radial-gradient(circle at top, #12314A 0%, #08131F 65%);
+      color: var(--ma-text);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -18,65 +39,328 @@
       margin: 0;
       padding: 20px;
     }
+
     .card {
-      background: #161b22;
-      border: 1px solid #30363d;
-      border-radius: 12px;
-      max-width: 540px;
-      padding: 32px;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      background: var(--ma-panel);
+      border: 1.5px solid var(--ma-accent);
+      border-radius: 16px;
+      max-width: 640px;
+      width: 100%;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
     }
-    img {
-      max-width: 100%;
+
+    .header {
+      background: var(--ma-header);
+      border-bottom: 2px solid var(--ma-accent);
+      padding: 18px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--ma-text);
+    }
+
+    .badge {
+      background: rgba(228, 185, 91, 0.15);
+      color: var(--ma-accent);
+      border: 1px solid var(--ma-accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.03em;
+    }
+
+    .lang-btn {
+      background: var(--ma-bg);
+      color: var(--ma-accent);
+      border: 1px solid var(--ma-accent);
       border-radius: 8px;
-      margin: 16px 0;
-      border: 1px solid #30363d;
-    }
-    h1 {
-      color: #ffffff;
-      margin-top: 0;
-    }
-    p {
-      line-height: 1.5;
-      color: #8b949e;
-    }
-    esp-web-install-button {
-      margin: 24px 0 12px;
-      display: inline-block;
-      --esp-tools-button-color: #238636;
-      --esp-tools-button-text-color: #ffffff;
-    }
-    .note {
+      padding: 6px 12px;
+      font-family: inherit;
       font-size: 0.85rem;
-      margin-top: 16px;
-      color: #8b949e;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
     }
+
+    .lang-btn:hover {
+      background: var(--ma-accent);
+      color: var(--ma-bg);
+    }
+
+    .content {
+      padding: 28px 24px;
+      text-align: center;
+    }
+
+    .subtitle {
+      line-height: 1.55;
+      color: var(--ma-text-muted);
+      margin: 0 0 20px;
+      font-size: 1rem;
+    }
+
+    .features {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-bottom: 22px;
+    }
+
+    .feature-pill {
+      background: var(--ma-bg);
+      border: 1px solid var(--ma-bar-bg);
+      border-radius: 10px;
+      padding: 10px 8px;
+      font-size: 0.82rem;
+      color: var(--ma-text);
+      font-weight: 500;
+    }
+
+    .feature-pill span {
+      display: block;
+      font-size: 1.2rem;
+      margin-bottom: 4px;
+    }
+
+    .preview-tabs {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .tab-btn {
+      background: var(--ma-bg);
+      color: var(--ma-text-muted);
+      border: 1px solid var(--ma-bar-bg);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      background: var(--ma-bar-bg);
+      color: var(--ma-bar-fill);
+      border-color: var(--ma-bar-fill);
+    }
+
+    .preview-frame {
+      background: var(--ma-bg);
+      border: 1px solid var(--ma-bar-bg);
+      border-radius: 12px;
+      padding: 10px;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    .preview-frame img {
+      display: block;
+      max-width: 340px;
+      width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--ma-accent);
+    }
+
+    .install-box {
+      margin: 24px 0 18px;
+    }
+
+    esp-web-install-button {
+      display: inline-block;
+      --esp-tools-button-color: #E4B95B;
+      --esp-tools-button-text-color: #08131F;
+      --esp-tools-button-border-radius: 10px;
+    }
+
+    .install-btn {
+      background: var(--ma-accent);
+      color: var(--ma-bg);
+      border: none;
+      border-radius: 10px;
+      padding: 14px 28px;
+      font-family: inherit;
+      font-size: 1.05rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(228, 185, 91, 0.35);
+      transition: transform 0.15s, background 0.2s;
+    }
+
+    .install-btn:hover {
+      background: #f0c96f;
+      transform: translateY(-1px);
+    }
+
+    .alert {
+      display: inline-block;
+      background: rgba(217, 92, 92, 0.15);
+      border: 1px solid var(--ma-danger);
+      color: #ffb3b3;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-size: 0.9rem;
+    }
+
+    .steps {
+      background: var(--ma-bg);
+      border: 1px solid var(--ma-bar-bg);
+      border-radius: 12px;
+      padding: 16px 20px;
+      text-align: left;
+      margin-top: 20px;
+    }
+
+    .steps h2 {
+      font-size: 0.92rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ma-bar-fill);
+      margin: 0 0 10px;
+    }
+
+    .steps ol {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--ma-text-muted);
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    .steps li + li {
+      margin-top: 6px;
+    }
+
+    code {
+      background: var(--ma-footer);
+      color: var(--ma-accent);
+      padding: 2px 6px;
+      border-radius: 5px;
+      font-size: 0.85em;
+    }
+
+    .footer {
+      background: var(--ma-footer);
+      border-top: 1px solid var(--ma-bar-bg);
+      padding: 14px 24px;
+      font-size: 0.84rem;
+      color: var(--ma-text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
     a {
-      color: #58a6ff;
+      color: var(--ma-bar-fill);
       text-decoration: none;
+      font-weight: 600;
     }
+
     a:hover {
       text-decoration: underline;
+    }
+
+    @media (max-width: 520px) {
+      .features {
+        grid-template-columns: 1fr;
+      }
+      .footer {
+        justify-content: center;
+        text-align: center;
+      }
     }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>📻 MuseRadio Installer</h1>
-    <p>Installez le firmware ESPHome complet sur votre carte <strong>Raspiaudio Radio (ESP32-S3)</strong> directement depuis votre navigateur.</p>
-    <img src="screen.jpg" alt="Aperçu écran MuseRadio" />
-    <div>
-      <esp-web-install-button manifest="manifest.json">
-        <button slot="activate">Installer le firmware</button>
-        <span slot="unsupported">Votre navigateur n'est pas compatible. Utilisez Google Chrome ou Microsoft Edge.</span>
-        <span slot="not-allowed">L'installation nécessite une connexion sécurisée (HTTPS).</span>
-      </esp-web-install-button>
+    <div class="header">
+      <h1 class="header-title">
+        <span>📻 MuseRadio</span>
+        <span class="badge">ESP32-S3</span>
+      </h1>
+      <button class="lang-btn" id="langToggle" type="button">🇬🇧 EN</button>
     </div>
-    <p class="note">
-      ⚠️ Utilisez <strong>Google Chrome</strong> ou <strong>Microsoft Edge</strong> sur ordinateur et connectez la carte en USB.<br>
-      Code source & documentation sur <a href="https://github.com/afer92/MuseRadio" target="_blank" rel="noopener">GitHub</a>.
-    </p>
+
+    <div class="content">
+      <p class="subtitle" data-i18n="subtitle">
+        Installez le firmware ESPHome complet sur votre carte <strong>Raspiaudio Radio (ESP32-S3)</strong> directement depuis votre navigateur.
+      </p>
+
+      <div class="features">
+        <div class="feature-pill">
+          <span>🎵</span>
+          <div data-i18n="feat1">Music Assistant<br>FLAC 48 kHz</div>
+        </div>
+        <div class="feature-pill">
+          <span>🎙️</span>
+          <div data-i18n="feat2">Voice Assistant<br>&amp; microWakeWord</div>
+        </div>
+        <div class="feature-pill">
+          <span>📡</span>
+          <div data-i18n="feat3">Web Radio MP3<br>Mode autonome</div>
+        </div>
+      </div>
+
+      <div class="preview-tabs">
+        <button class="tab-btn active" type="button" data-img="screen.jpg" data-i18n="tabPlayer">Écran Lecture</button>
+        <button class="tab-btn" type="button" data-img="clock.jpg" data-i18n="tabClock">Écran Horloge</button>
+      </div>
+
+      <div class="preview-frame">
+        <img id="previewImg" src="screen.jpg" alt="Aperçu écran MuseRadio" />
+      </div>
+
+      <div class="install-box">
+        <esp-web-install-button manifest="manifest.json">
+          <button slot="activate" class="install-btn" data-i18n="installBtn">⚡ Installer le firmware</button>
+          <span slot="unsupported" class="alert" data-i18n="unsupported">
+            Votre navigateur n'est pas compatible. Utilisez Google Chrome ou Microsoft Edge sur ordinateur.
+          </span>
+          <span slot="not-allowed" class="alert" data-i18n="notAllowed">
+            L'installation nécessite une connexion sécurisée (HTTPS).
+          </span>
+        </esp-web-install-button>
+      </div>
+
+      <div class="steps">
+        <h2 data-i18n="stepsTitle">Démarrage rapide après installation</h2>
+        <ol>
+          <li data-i18n="step1">Branchez la carte en USB-C sur ordinateur (Chrome ou Edge) et cliquez sur <strong>Installer le firmware</strong>.</li>
+          <li data-i18n="step2">Connectez-vous au point d'accès Wi-Fi <code>Raspiaudio-radio-full</code> (mot de passe : <code>12345678</code>) pour renseigner votre réseau.</li>
+          <li data-i18n="step3">Dans Home Assistant, activez <strong>« Autoriser l'appareil à exécuter des actions Home Assistant »</strong> dans les options de l'appareil ESPHome.</li>
+        </ol>
+      </div>
+    </div>
+
+    <div class="footer">
+      <span data-i18n="footerReq">⚠️ Requiert Chrome ou Edge (Desktop)</span>
+      <a href="https://github.com" target="_blank" rel="noopener" data-i18n="footerLink">
+        Documentation &amp; Code source (GitHub) →
+      </a>
+    </div>
   </div>
-</body>
-</html>
+
+  <script>
+    const translations = {
+      fr: {
+        subtitle: 'Installez le firmware ESPHome complet sur votre carte <strong>Raspiaudio Radio (ESP32-S3)</strong> directement depuis votre navigateur.',
+        feat1: 'Music Assistant<br>FLAC 48 kHz',
+        feat2: 'Voice Assistant<br>&amp; microWakeWord',
