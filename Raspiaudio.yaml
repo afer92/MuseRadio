@@ -220,6 +220,33 @@ remote_receiver:
           then:
             - logger.log: "IR toggle local radio"
             - script.execute: toggle_local_radio
+      - if:
+          # Flèche Haut -> Preset MA suivant (remplacer 0xXXXX par le code relevé dans les logs)
+          condition:
+            lambda: 'return ((x.command == 0xFA05) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR MA preset next"
+            - script.execute:
+                id: cycle_ma_preset
+                delta: 1
+      - if:
+          # Flèche Bas -> Preset MA précédent (remplacer 0xYYYY par le code relevé dans les logs)
+          condition:
+            lambda: 'return ((x.command == 0xFB04) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR MA preset prev"
+            - script.execute:
+                id: cycle_ma_preset
+                delta: -1
+
+      - if:
+          # Touche Bin -> Arrêt de toutes les lectures (remplacer 0xZZZZ par le code relevé dans les logs)
+          condition:
+            lambda: 'return ((x.command == 0xBB44) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR stop all playback"
+            - script.execute: stop_all_playback
+                
 
 es8388:
 
@@ -575,6 +602,9 @@ globals:
   - id: clock_screensaver_active
     type: bool
     initial_value: 'false'
+  - id: current_ma_preset
+    type: int
+    initial_value: '0'
     
 interval:
   - interval: 1s
@@ -925,6 +955,11 @@ display:
                      TextAlign::TOP_CENTER, "USB");
           }
 
+          if (!id(jack_detect).state) {
+            it.print(bar_x + bar_w / 2, h - 49, id(font_wifi_label), id(ma_accent),
+                     TextAlign::TOP_CENTER, "CASQUE");
+          }
+          
           const int battery_x = w - 57;
           const int battery_y = h - 43;
           it.rectangle(battery_x, battery_y, 30, 12, id(ma_text));
@@ -997,6 +1032,24 @@ display:
           it.filled_rectangle(12, 12, w - 24, h - 24, id(ma_panel));
           it.rectangle(12, 12, w - 24, h - 24, id(ma_accent));
 
+          // 1. Badge Micro coupé (haut gauche)
+          if (id(mic_muted)) {
+            it.filled_rectangle(24, 20, 62, 18, id(ma_battery_low));
+            it.printf(55, 22, id(font_wifi_label), id(white), TextAlign::TOP_CENTER, "MIC OFF");
+          }
+
+          // 2. Badge Alarme Home Assistant (haut centre)
+          //if (id(ha_alarm_active).state) {
+          //  it.filled_rectangle(w / 2 - 30, 20, 60, 18, id(ma_accent));
+          //  it.printf(w / 2, 22, id(font_wifi_label), id(ma_bg), TextAlign::TOP_CENTER, "ALARME");
+          //}
+
+          // 3. Badge Charge USB (haut droite)
+          if (id(usb_power_detect).state) {
+            it.filled_rectangle(w - 60, 20, 36, 18, id(ma_bar_fill));
+            it.printf(w - 42, 22, id(font_wifi_label), id(ma_bg), TextAlign::TOP_CENTER, "USB");
+          }
+          
           auto now = id(ha_time).now();
           char time_str[10];
           char date_str[32];
@@ -1378,6 +1431,25 @@ binary_sensor:
               id: toggle_local_radio
               # station_url: !lambda return id(radio_station_4).state;
 
+switch:
+  - platform: template
+    name: "Mute Microphone"
+    id: mute_mic_switch
+    icon: mdi:microphone-off
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    on_turn_on:
+      - lambda: 'id(mic_muted) = true;'
+      - micro_wake_word.stop:
+      - script.execute: reset_display
+    on_turn_off:
+      - lambda: 'id(mic_muted) = false;'
+      - if:
+          condition:
+            lambda: 'return !id(music_active) && id(phase) == 1;'
+          then:
+            - micro_wake_word.start:
+      - script.execute: reset_display
               
 select:
   - platform: template
@@ -1998,7 +2070,22 @@ script:
             - lambda: |-
                 id(music_active) = (id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING);
                 id(preset_message) = "STOP RADIO";
-            - script.execute: show_preset_feedback
+                if (id(myDisplay).is_ready()) {
+                  id(myDisplay).show_page(presetP);
+                  id(myDisplay).update();
+                }
+            - delay: 1500ms
+            - lambda: |-
+                if (!id(music_active)) {
+                  id(phase) = 1;
+                  id(lightTO) = 0;
+                  id(clock_screensaver_active) = true;
+                  if (id(myDisplay).is_ready()) {
+                    id(myDisplay).show_page(clockP);
+                    id(myDisplay).update();
+                  }
+                }
+            - script.execute: update_clock_brightness
           else:
             - if:
                 condition:
@@ -2372,20 +2459,30 @@ script:
       - logger.log: "Jack detect high -> route to speaker"
       - output.turn_off: dac_mute
       - lambda: |-
-          // Active les sorties DAC et le routage vers le haut-parleur interne
           id(my_es8388).write_byte(0x1D, 0x20);
           id(my_es8388).write_byte(0x1C, 0x10);
           id(my_es8388).write_byte(0x04, 0x30);
+      - if:
+          condition:
+            lambda: 'return id(phase) != 0;'
+          then:
+            - lambda: 'id(preset_message) = "HAUT-PARLEUR";'
+            - script.execute: show_preset_feedback
 
   - id: jack_detect_low
     then:
       - logger.log: "Jack detect low -> route to line out"
       - output.turn_on: dac_mute
       - lambda: |-
-          // Coupe l'amplificateur HP et bascule vers la sortie casque/ligne
           id(my_es8388).write_byte(0x1D, 0x00);
           id(my_es8388).write_byte(0x1C, 0x00);
           id(my_es8388).write_byte(0x04, 0x0C);
+      - if:
+          condition:
+            lambda: 'return id(phase) != 0;'
+          then:
+            - lambda: 'id(preset_message) = "CASQUE";'
+            - script.execute: show_preset_feedback
 
   - id: adjust_volume
     parameters:
@@ -2482,7 +2579,7 @@ script:
             id(myDisplay).update();
             return;
           }
-          if (id(mic_muted)) {
+          if (id(mic_muted) && !id(clock_screensaver_active)) {
             id(myDisplay).show_page(muteMicP);
             id(myDisplay).update();
             return;
@@ -2600,6 +2697,7 @@ script:
           then:
             - lambda: 'id(phase) = 1;'
             - script.execute: reset_display
+            - lambda: 'id(lightTO) = 55;'
 
   - id: waiting
     mode: restart
@@ -2721,4 +2819,72 @@ script:
                   - light.turn_on:
                       id: screen_backlight
                       brightness: 25%
+
+  - id: cycle_ma_preset
+    mode: restart
+    parameters:
+      delta: int
+    then:
+      - lambda: |-
+          if (id(current_ma_preset) < 1 || id(current_ma_preset) > 3) {
+            id(current_ma_preset) = (delta > 0) ? 1 : 3;
+          } else {
+            int next = id(current_ma_preset) + delta;
+            if (next > 3) next = 1;
+            if (next < 1) next = 3;
+            id(current_ma_preset) = next;
+          }
+          std::string station;
+          if (id(current_ma_preset) == 1) station = id(radio_station_1).state;
+          else if (id(current_ma_preset) == 2) station = id(radio_station_2).state;
+          else station = id(radio_station_3).state;
+
+          ESP_LOGI("ir_preset", "Cycle MA preset -> %d", id(current_ma_preset));
+          id(play_radio_preset).execute(station);
+
+  - id: stop_all_playback
+    mode: restart
+    then:
+      - logger.log: "Arrêt de toutes les lectures -> Horloge (IR Bin)"
+      - lambda: |-
+          id(lightTO) = 0;
+          id(assist_return_to_ma) = false;
+          id(assist_return_to_local_radio) = false;
+          id(assist_left_ma_group) = false;
+      # 1. Arrêt de la Web Radio locale
+      - if:
+          condition:
+            lambda: |-
+              return id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                     id(local_radio_player).state == media_player::MEDIA_PLAYER_STATE_PAUSED;
+          then:
+            - media_player.stop:
+                id: local_radio_player
+                announcement: false
+      # 2. Pause / Arrêt de Music Assistant (Sendspin)
+      - if:
+          condition:
+            lambda: |-
+              return id(sendspin_media_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING ||
+                     id(music_source_player).state == media_player::MEDIA_PLAYER_STATE_PLAYING;
+          then:
+            - media_player.pause: sendspin_media_player
+            - media_player.stop: music_source_player
+      # 3. Arrêt d'une éventuelle annonce vocale
+      - if:
+          condition:
+            media_player.is_playing: speaker_media_player
+          then:
+            - media_player.stop:
+                id: speaker_media_player
+      # 4. Passage immédiat en veille sur l'écran horloge
+      - lambda: |-
+          id(music_active) = false;
+          id(phase) = 1;
+          id(clock_screensaver_active) = true;
+          if (id(myDisplay).is_ready()) {
+            id(myDisplay).show_page(clockP);
+            id(myDisplay).update();
+          }
+      - script.execute: update_clock_brightness
 
