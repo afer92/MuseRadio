@@ -358,9 +358,73 @@
     </div>
   </div>
 
-  <script>
+    <script>
     const translations = {
       fr: {
         subtitle: 'Installez le firmware ESPHome complet sur votre carte <strong>Raspiaudio Radio (ESP32-S3)</strong> directement depuis votre navigateur.',
         feat1: 'Music Assistant<br>FLAC 48 kHz',
         feat2: 'Voice Assistant<br>&amp; microWakeWord',
+        feat3: 'Web Radio MP3<br>Mode autonome',
+        tabPlayer: 'Écran Lecture',
+        tabClock: 'Écran Horloge',
+        installBtn: '⚡ Installer le firmware',
+        unsupported: "Votre navigateur n'est pas compatible. Utilisez Google Chrome ou Microsoft Edge sur ordinateur.",
+        notAllowed: "L'installation nécessite une connexion sécurisée (HTTPS).",
+        stepsTitle: 'Démarrage rapide après installation',
+        step1: 'Branchez la carte en USB-C sur ordinateur (Chrome ou Edge) et cliquez sur <strong>Installer le firmware</strong>.',
+        step2: 'Connectez-vous au point d\'accès Wi-Fi <code>Raspiaudio-radio-full</code> (mot de passe : <code>12345678</code>) pour renseigner votre réseau.',
+        step3: 'Dans Home Assistant, activez <strong>« Autoriser l\'appareil à exécuter des actions Home Assistant »</strong> dans les options de l\'appareil ESPHome.',
+        footerReq: '⚠️ Requiert Chrome ou Edge (Desktop)',
+        footerLink: 'Documentation &amp; Code source (GitHub) →',
+        toggleLabel: '🇬🇧 EN'
+      },
+      en: {
+        subtitle: 'Flash the complete ESPHome firmware onto your <strong>Raspiaudio Radio (ESP32-S3)</strong> board directly from your browser.',
+        feat1: 'Music Assistant<br>48 kHz FLAC',
+        feat2: 'Voice Assistant<br>&amp; microWakeWord',
+        feat3: 'Web Radio MP3<br>Standalone Mode',
+        tabPlayer: 'Player Screen',
+        tabClock: 'Clock Screensaver',
+        installBtn: '⚡ Install Firmware',
+        unsupported: 'Your browser is not supported. Please use Google Chrome or Microsoft Edge on desktop.',
+        notAllowed: 'Installation requires a secure connection (HTTPS).',
+        stepsTitle: 'Quick Start After Flashing',
+        step1: 'Connect the board via USB-C on desktop (Chrome or Edge) and click <strong>Install Firmware</strong>.',
+        step2: 'Connect to the <code>Raspiaudio-radio-full</code> Wi-Fi access point (password: <code>12345678</code>) to configure your network.',
+        step3: 'In Home Assistant, enable <strong>"Allow the device to perform Home Assistant actions"</strong> under the ESPHome device options.',
+        footerReq: '⚠️ Requires Chrome or Edge (Desktop)',
+        footerLink: 'Documentation &amp; Source Code (GitHub) →',
+        toggleLabel: '🇫🇷 FR'
+      }
+    };
+
+    let currentLang = navigator.language && navigator.language.startsWith('fr') ? 'fr' : 'en';
+
+    function applyLanguage(lang) {
+      currentLang = lang;
+      document.documentElement.lang = lang;
+      const dict = translations[lang];
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const key = el.getAttribute('data-i18n');
+        if (dict[key]) el.innerHTML = dict[key];
+      });
+      document.getElementById('langToggle').textContent = dict.toggleLabel;
+    }
+
+    document.getElementById('langToggle').addEventListener('click', () => {
+      applyLanguage(currentLang === 'fr' ? 'en' : 'fr');
+    });
+
+    const previewImg = document.getElementById('previewImg');
+    document.querySelectorAll('.tab-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+        btn.classList.add('active');
+        previewImg.src = btn.getAttribute('data-img');
+      });
+    });
+
+    applyLanguage(currentLang);
+  </script>
+</body>
+</html>
