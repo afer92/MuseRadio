@@ -38,15 +38,14 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 * **Temporary Music Interruption (`temporary_assist`)**: Pressing the **Assist button (`GPIO45`)** or the IR remote pauses the Sendspin group, releases the shared I2S bus, listens to your voice command, and automatically resumes music playback afterward.
 
 ### 3. Clock Screensaver & Adaptive Brightness
-* **Automatic Standby (`clockP`)**: After `60 s` of inactivity (`lightTO`), the screen switches to a clock screensaver displaying the current time, date, outdoor temperature, weather icon, and battery level.
-* **Astronomical Day/Night Backlight (`sun` + `update_clock_brightness`)**: Uses local sunrise and sunset times (based on your `latitude` and `longitude`) to automatically set backlight brightness to **75%** during daytime and **25%** at night.
+* **Automatic Standby (`clockP`)**: Activates after inactivity, triggered by timers, IR `Bin` key, Web Radio, or Music Assistant, showing time, date, weather, battery, and status badges (**`MIC OFF`**, **`USB`**).
+* **Astronomical Day/Night Backlight (`sun` + `update_clock_brightness`)**: Adjusts backlight brightness automatically using local sunrise and sunset coordinates (75% daytime, 25% night).
 
 ### 4. Advanced Hardware Management
-* **ES8388 Audio Codec**:
-  * Automatic headphone jack detection (`GPIO10`) with hardware I2C register switching between the internal speaker and line/headphone output.
-  * Fine gain curve on registers `0x2E`–`0x31` for smooth control at very low volume levels (`< 10%`).
-* **Power & Battery**: Voltage measurement (`GPIO13`) converted to percentage via a 22-point polynomial curve, plus USB charging detection (`GPIO21`).
-* **Infrared Remote (`GPIO47`, NEC protocol)**: Volume +/-, Mute/Unmute, and Voice Assistant trigger.
+* **ES8388 Audio Codec**: Features automatic headphone jack detection (`GPIO10`) with I2C switching, an on-screen **`CASQUE`** indicator, and fine gain adjustment for low volumes (< 10%).
+* **Power & Battery**: Uses voltage measurement (`GPIO13`) mapped via a polynomial curve for percentage, alongside USB charging detection (`GPIO21`).
+* **Infrared Remote (`GPIO47`, NEC protocol)**: Controls volume, mute, voice assistant, Music Assistant presets (1–3), Web Radio stations, and playback-stopping standby via the `Bin` key.
+
 ---
 
 ## 🎛️ Physical Controls
@@ -55,7 +54,7 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 | :--- | :--- | :--- | :--- |
 | **Volume Encoder** | `GPIO42` / `GPIO3` | — | Adjusts volume (MA group or local volume) |
 | **Volume Encoder Click** | `GPIO48` | Mute / Unmute | — |
-| **Function Encoder** | `GPIO7` / `GPIO6` | — | Selects a station from the Web Radio list |
+| **Function Encoder Click** | `GPIO45` | Starts / stops **Assist** | Toggles **Mute Microphone** (≥ 1 s) |
 | **Function Encoder Click** | `GPIO45` | Starts / stops **Assist** | — |
 | **Buttons 1–3** | `GPIO1` (ADC) | Plays **MA Presets 1–3** | Saves current station to Presets 1–3 |
 | **Button 4 (Confirm)** | `GPIO1` (ADC) | Starts / Stops **Local Web Radio** | — |
@@ -157,6 +156,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Station button 1 to 3** (`text`): View or manually edit the Music Assistant URIs (`library://radio/...` or `http://...`) assigned to Buttons 1–3.
 * **Station button 4** (`text`): Enter a custom MP3 stream URL (`http://...` or `https://...`) accessible directly via the station encoder under option **`10 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`): Override the Home Assistant entity ID of the Music Assistant player (e.g., `media_player.raspiaudio_radio`) if automatic detection is not desired.
+* **Mute Microphone** (`switch`): Mutes or unmutes the local microphone (also controllable via a long press on `GPIO45`), showing a **`MIC OFF`** badge on standby and clock screens.
 
 ---
 
@@ -253,6 +253,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 * **Interruption temporaire de la musique (`temporary_assist`)** : un appui sur le bouton **Assist (`GPIO45`)** ou la télécommande IR met en pause le groupe Sendspin, libère le bus I2S partagé, écoute la commande vocale, puis relance automatiquement la musique.
 
 ### 3. Gestion matérielle avancée & Écran de veille
+* **Gestion audio et écran** : Intégration du codec ES8388, horloge intelligente `clockP` avec mode veille automatique, suivi de la batterie et contrôle infrarouge.
 * **Codec Audio ES8388** :
   * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
   * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
@@ -269,7 +270,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 | **Encodeur Volume** | `GPIO42` / `GPIO3` | — | Ajuste le volume (groupe MA ou volume local) |
 | **Clic Encodeur Volume** | `GPIO48` | Mute / Unmute | — |
 | **Encodeur Fonction** | `GPIO7` / `GPIO6` | — | Sélectionne la station dans la liste Web Radio |
-| **Clic Encodeur Fonction** | `GPIO45` | Lance / interrompt **Assist** | — |
+| **Clic Encodeur Fonction** | `GPIO45` | Lance / interrompt **Assist** | Active / désactive **Mute Microphone** (≥ 1 s) |
 | **Boutons 1 à 3** | `GPIO1` (ADC) | Joue les **Presets MA 1 à 3** | Mémorise la station MA en cours sur **Presets 1 à 3** |
 | **Bouton 4 (Confirm)** | `GPIO1` (ADC) | Démarre / Arrête la **Web Radio locale** | — |
 
@@ -370,6 +371,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Station button 1 à 3** (`text`) : visualisez ou modifiez manuellement les URI (`library://radio/...` ou `http://...`) des boutons Music Assistant.
 * **Station button 4** (`text`) : saisissez une URL MP3 personnalisée (`http://...` ou `https://...`) accessible directement depuis la molette sous l'option **`10 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`) : forcez l'identifiant d'entité Home Assistant du lecteur Music Assistant (ex. `media_player.raspiaudio_radio`) si la détection automatique n'est pas souhaitée.
+* **Mute Microphone** (`switch`) : Contrôle du micro (pilotable aussi via appui long sur `GPIO45`) avec indicateur visuel et badge **`MIC OFF`**.
 
 ---
 
@@ -423,6 +425,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 ### 8. L'écran reste sur l'horloge ou est bloqué sur `"Waiting WiFi..."`
 * **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`) avec luminosité adaptative selon le lever et le coucher du soleil (75 % le jour / 25 % la nuit). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
 * **Bloqué sur `"Waiting WiFi..."`** : Vérifiez les identifiants dans `secrets.yaml`. En cas d'absence prolongée de réseau, l'appareil active son point d'accès de secours **`Raspiaudio-radio-full`** (mot de passe : `12345678`) permettant de reconfigurer le Wi-Fi via le portail captif.
+* **Horloge en veille** : Activation automatique après `60 s` d'inactivité (ou raccourcis dédiés) avec luminosité jour/nuit (75 % / 25 %). Réveil par rotation ou bouton.
 
 ---
 
