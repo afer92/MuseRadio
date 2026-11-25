@@ -120,6 +120,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **I2S Audio Bus**: `MCLK = GPIO0`, `BCLK = GPIO5`, `LRCLK = GPIO16`, `DOUT = GPIO17`, `DIN = GPIO4`, `DAC_MUTE = GPIO46`
 * **SPI Display (`mipi_spi` ST7789V 320×240)**: `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
 * **Inputs & Power**: `Buttons ADC = GPIO1`, `Volume Encoder = GPIO42/GPIO3 (Click: GPIO48)`, `Function Encoder = GPIO7/GPIO6 (Click: GPIO45)`, `Jack Detect = GPIO10`, `IR Receiver = GPIO47`, `Battery ADC = GPIO13`, `USB Power = GPIO21`
+* **Infrared Remote (`GPIO47`, NEC protocol)**: Volume +/-, Mute/Unmute, Voice Assistant trigger, Web Radio station next/previous, and local Web Radio start/stop.
 
 ---
 
@@ -138,8 +139,8 @@ Once the device is flashed and added under **Settings → Devices & Services →
 ### 3. Audio volume is too loud at boot or when starting Web Radio
 * **Cause**: By default, an ESPHome `media_player` component initializes its software volume at `1.0` (100%).
 * **Solution**:
-  * Ensure `volume_initial: 0.3` is set on `local_radio_player`.
-  * In the `logo` script, keep the temporary volume cap `std::min(id(Vol), 0.30f)` before playing `little_sound`.
+  * Ensure `volume_initial: 0.2` is set on `local_radio_player`.
+  * In the `logo` script, keep the temporary volume cap `std::min(id(Vol), 0.20f)` before playing `little_sound`.
 
 ### 4. Wake word (*Okay Nabu*) does not trigger while music is playing
 * **Expected Behavior**: To prevent the speaker from self-triggering the microphone and to preserve ESP32-S3 CPU resources during 48 kHz FLAC decoding, `micro_wake_word` is intentionally paused while `music_active` is true.
@@ -180,8 +181,8 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 
 ![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
 
-> **Note :** Ce projet est dérivé de [RASPIAUDIO/esphomeRadio](https://github.com).
-
+> **Note:** Ce projet est dérivé de [RASPIAUDIO/esphomeRadio](https://github.com/RASPIAUDIO/esphomeRadio).
+> 
 Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Radio (ESP32-S3)** intégrant simultanément :
 * **Music Assistant (via Sendspin)** : lecture multiroom FLAC 48 kHz avec affichage des métadonnées et contrôle du volume de groupe.
 * **Home Assistant Voice Assistant & microWakeWord** : détection locale des mots de réveil (*Okay Nabu*, *Hey Jarvis*, *Hey Mycroft*, *Stop*) avec bascule intelligente du bus I2S partagé.
