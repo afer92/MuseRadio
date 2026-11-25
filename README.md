@@ -64,7 +64,7 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 
 You can flash the pre-compiled firmware directly onto your **Raspiaudio Radio (ESP32-S3)** via USB without installing ESPHome:
 
-👉 **[![Install via Browser](https://shields.io)](https://afer92.github.io/MuseRadio/)** *(Requires Google Chrome or Microsoft Edge on desktop)*
+👉 **https://afer92.github.io/MuseRadio/** *(Requires Google Chrome or Microsoft Edge on desktop)*
 
 Once flashed, connect to the **`Raspiaudio-radio-full`** Wi-Fi access point (password: `12345678`) to configure your Wi-Fi network.
 
@@ -171,7 +171,7 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 
 ![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
 
-> **Note:** Ces projet est derivé de [RASPIAUDIO/esphomeRadio](https://github.com/RASPIAUDIO/esphomeRadio).
+> **Note:** Ce projet est derivé de [RASPIAUDIO/esphomeRadio](https://github.com/RASPIAUDIO/esphomeRadio).
 
 # 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
  
