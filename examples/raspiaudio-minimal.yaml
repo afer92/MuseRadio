@@ -9,7 +9,7 @@ substitutions:
 # Importation directe du firmware complet depuis GitHub / Direct remote package import
 packages:
   museradio:
-    url: https://github.com
+    url: https://github.com/afer92/MuseRadio/
     ref: main
     files:
       - Raspiaudio.yaml
