@@ -54,8 +54,8 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 | :--- | :--- | :--- | :--- |
 | **Volume Encoder** | `GPIO42` / `GPIO3` | — | Adjusts volume (MA group or local volume) |
 | **Volume Encoder Click** | `GPIO48` | Mute / Unmute | — |
+| **Function Encoder** | `GPIO7` / `GPIO6` | — | Selects a station from the Web Radio list |
 | **Function Encoder Click** | `GPIO45` | Starts / stops **Assist** | Toggles **Mute Microphone** (≥ 1 s) |
-| **Function Encoder Click** | `GPIO45` | Starts / stops **Assist** | — |
 | **Buttons 1–3** | `GPIO1` (ADC) | Plays **MA Presets 1–3** | Saves current station to Presets 1–3 |
 | **Button 4 (Confirm)** | `GPIO1` (ADC) | Starts / Stops **Local Web Radio** | — |
 
@@ -253,7 +253,6 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 * **Interruption temporaire de la musique (`temporary_assist`)** : un appui sur le bouton **Assist (`GPIO45`)** ou la télécommande IR met en pause le groupe Sendspin, libère le bus I2S partagé, écoute la commande vocale, puis relance automatiquement la musique.
 
 ### 3. Gestion matérielle avancée & Écran de veille
-* **Gestion audio et écran** : Intégration du codec ES8388, horloge intelligente `clockP` avec mode veille automatique, suivi de la batterie et contrôle infrarouge.
 * **Codec Audio ES8388** :
   * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
   * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
@@ -425,7 +424,6 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 ### 8. L'écran reste sur l'horloge ou est bloqué sur `"Waiting WiFi..."`
 * **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`) avec luminosité adaptative selon le lever et le coucher du soleil (75 % le jour / 25 % la nuit). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
 * **Bloqué sur `"Waiting WiFi..."`** : Vérifiez les identifiants dans `secrets.yaml`. En cas d'absence prolongée de réseau, l'appareil active son point d'accès de secours **`Raspiaudio-radio-full`** (mot de passe : `12345678`) permettant de reconfigurer le Wi-Fi via le portail captif.
-* **Horloge en veille** : Activation automatique après `60 s` d'inactivité (ou raccourcis dédiés) avec luminosité jour/nuit (75 % / 25 %). Réveil par rotation ou bouton.
 
 ---
 
