@@ -47,17 +47,19 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Copier manifest.json et .bin dans docs/ et pousser sur GitHub
+      - name: Mettre à jour docs/ avec le firmware compilé
         run: |
           MANIFEST_FILE=$(find "${{ steps.build.outputs.name }}" -name "*manifest.json" | head -n 1)
           if [ -z "$MANIFEST_FILE" ]; then
             echo "Erreur : aucun fichier manifest.json généré !"
             exit 1
           fi
+          git fetch origin main
+          git reset --mixed origin/main
           cp "$MANIFEST_FILE" docs/manifest.json
           cp "${{ steps.build.outputs.name }}"/*.bin docs/
           git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@://github.com"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add -f docs/manifest.json docs/*.bin
           git commit -m "chore: update compiled firmware in docs/ [skip ci]" || exit 0
           git push origin HEAD:main
