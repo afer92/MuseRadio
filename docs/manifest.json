@@ -8,15 +8,15 @@
       "chipFamily": "ESP32-S3",
       "ota": {
         "path": "raspiaudio-radio-esp32s3.ota.bin",
-        "md5": "b025ba2984d56d03c433e604db8e5435",
-        "sha256": "dbfdbd9bc9aaeda21eebc23144e1805ab02d3d17d86acbbb67c9eb921e75b04b"
+        "md5": "37212f9df25ca20d88e4a20d9a9c558d",
+        "sha256": "80393b78caeb2df655de302b715bce7ed1b56f74b094e5c432b9fb03e8b58c69"
       },
       "parts": [
         {
           "path": "raspiaudio-radio-esp32s3.factory.bin",
           "offset": 0,
-          "md5": "45da0137100d550f7169a81835783ad7",
-          "sha256": "c0b938cbc9f10225d244b5e996a5cc561b37a3fe3fe9719cd4ebb240bd0bcdbf"
+          "md5": "01dbba83914580fea9e1fb0404201250",
+          "sha256": "7b2ac8cee05d863f96f19e4a8fe3b526ac54d89b99184035db59dbd4419bf280"
         }
       ]
     }
