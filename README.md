@@ -176,17 +176,17 @@ This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**
 
 ## 🇫🇷 Français
 
+# 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
+
 ![Aperçu de l'écran Raspiaudio Radio](docs/screen.jpg)
 
-> **Note:** Ce projet est dérivé de [RASPIAUDIO/esphomeRadio](https://github.com/RASPIAUDIO/esphomeRadio).
+> **Note :** Ce projet est dérivé de [RASPIAUDIO/esphomeRadio](https://github.com).
 
-# 📻 Raspiaudio Radio — Firmware ESPHome (Music Assistant, Voice Assistant & Web Radio autonome)
- 
 Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Radio (ESP32-S3)** intégrant simultanément :
 * **Music Assistant (via Sendspin)** : lecture multiroom FLAC 48 kHz avec affichage des métadonnées et contrôle du volume de groupe.
 * **Home Assistant Voice Assistant & microWakeWord** : détection locale des mots de réveil (*Okay Nabu*, *Hey Jarvis*, *Hey Mycroft*, *Stop*) avec bascule intelligente du bus I2S partagé.
 * **Radio Web locale autonome (MP3)** : écoute directe de flux radio Icecast/HTTP sans dépendre de Home Assistant ni de Music Assistant.
-* **Interface graphique événementielle (ST7789V 320×240)** : affichage haute performance (`update_interval: never`) avec météo Home Assistant (température + icône vectorielle), jauge batterie, signal Wi-Fi et retour visuel des actions.
+* **Interface graphique événementielle (ST7789V 320×240)** : affichage haute performance (`update_interval: never`) avec météo Home Assistant (température + icône vectorielle), jauge batterie, signal Wi-Fi, retour visuel des actions et écran de veille horloge.
 
 ---
 
@@ -198,26 +198,19 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
   * **Appui long (≥ 1,8 s)** : récupère l'URI de la station en cours via `music_assistant.get_queue` et l'enregistre dans la mémoire flash du bouton.
 * **Mode Web Radio directe autonome (Bouton 4 + Encodeur Station)** :
   * **Encodeur rotatif gauche (`GPIO6` / `GPIO7`)** : permet de parcourir la liste déroulante des stations locales (`local_radio_select`) avec aperçu immédiat à l'écran et bascule automatique temporisée (`600 ms`) si la lecture est déjà active.
-  * **Appui court sur le Bouton 4** : démarre ou arrête le flux MP3 direct sélectionné (ex. *France Info*, *France Inter*, *France Musique*, *FIP*, *Nostalgie*, *Radio Classique*), en coupant automatiquement Music Assistant si nécessaire.
+  * **Appui court sur le Bouton 4** : démarre ou arrête le flux MP3 direct sélectionné (9 stations personnalisables dans `stations/stations.yaml`, ou votre URL personnalisée sur l'emplacement **`10 - Station 4 (URL)`**), en coupant automatiquement Music Assistant si nécessaire.
 
 ### 2. Assistant Vocal intelligent (microWakeWord + Assist)
 * **Détection locale** : prise en charge des modèles `okay_nabu`, `hey_jarvis`, `hey_mycroft` et `stop` avec réglage de sensibilité à la volée depuis Home Assistant (*Slightly*, *Moderately*, *Very sensitive*).
 * **Interruption temporaire de la musique (`temporary_assist`)** : un appui sur le bouton **Assist (`GPIO45`)** ou la télécommande IR met en pause le groupe Sendspin, libère le bus I2S partagé, écoute la commande vocale, puis relance automatiquement la musique.
 
-### 3. Écran de veille Horloge & Gestion matérielle avancée
-* **Écran horloge adaptatif (`clockP`)** : après `60 s` d'inactivité en veille, l'écran affiche l'heure, la date, la météo et le niveau de batterie, en ajustant automatiquement le rétroéclairage (`75 %` de 7h00 à 21h59, `25 %` la nuit).
+### 3. Gestion matérielle avancée & Écran de veille
 * **Codec Audio ES8388** :
   * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
   * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
+* **Écran Horloge intelligent (`clockP`)** : s'active automatiquement après `60 s` d'inactivité en veille, affiche l'heure, la date, la météo et le niveau de batterie, et ajuste automatiquement la luminosité du rétroéclairage (75 % de 7h00 à 21h59, 25 % la nuit).
 * **Alimentation & Batterie** : mesure de tension (`GPIO13`) convertie en pourcentage via une courbe polynomiale à 22 points et détection de charge USB (`GPIO21`).
-* **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute, changement de station Web Radio (Suivant / Précédent), démarrage/arrêt de la Web Radio et déclenchement de l'assistant vocal.
-
-### 4. Gestion matérielle avancée
-* **Codec Audio ES8388** :
-  * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
-  * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
-* **Alimentation & Batterie** : mesure de tension (`GPIO13`) convertie en pourcentage via une courbe polynomiale à 22 points et détection de charge USB (`GPIO21`).
-* **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute et déclenchement de l'assistant vocal.
+* **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute, déclenchement de l'assistant vocal, changement de station Web Radio (suivante/précédente) et démarrage/arrêt de la Web Radio locale.
 
 ---
 
@@ -229,18 +222,14 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 | **Clic Encodeur Volume** | `GPIO48` | Mute / Unmute | — |
 | **Encodeur Fonction** | `GPIO7` / `GPIO6` | — | Sélectionne la station dans la liste Web Radio |
 | **Clic Encodeur Fonction** | `GPIO45` | Lance / interrompt **Assist** | — |
-| **Bouton 1** | `GPIO1` (ADC) | Joue le **Preset MA 1** | Mémorise la station MA en cours sur **Preset 1** |
-| **Bouton 2** | `GPIO1` (ADC) | Joue le **Preset MA 2** | Mémorise la station MA en cours sur **Preset 2** |
-| **Bouton 3** | `GPIO1` (ADC) | Joue le **Preset MA 3** | Mémorise la station MA en cours sur **Preset 3** |
+| **Boutons 1 à 3** | `GPIO1` (ADC) | Joue les **Presets MA 1 à 3** | Mémorise la station MA en cours sur **Presets 1 à 3** |
 | **Bouton 4 (Confirm)** | `GPIO1` (ADC) | Démarre / Arrête la **Web Radio locale** | — |
 
 ---
 
-## 🛠 Installation et prérequis
+## 🛠️ Installation et prérequis
 
 ### ⚡ Installation rapide via le navigateur (Recommandée)
-
-Vous pouvez flasher directement le firmware précompilé sur votre carte **Raspiaudio Radio (ESP32-S3)** en USB sans installer ESPHome :
 
 👉 **https://afer92.github.io/MuseRadio** *(Nécessite Google Chrome ou Microsoft Edge sur ordinateur)*
 
@@ -248,9 +237,9 @@ Une fois le flashage terminé, connectez-vous au point d'accès Wi-Fi **`Raspiau
 
 ### 1. Prérequis logiciels
 
-- **ESPHome** (`esp-idf`) via Home Assistant ou CLI.
-- **Home Assistant** incluant l'intégration **Music Assistant** (Sendspin) et une entité météo (`weather.forecast_maison` par défaut, paramétrable dans `.variables`).
-- **Autorisation indispensable** : dans Home Assistant, allez dans **Paramètres → Appareils et services → ESPHome → Votre Radio → Configurer / Options** et cochez **« Autoriser l'appareil à exécuter des actions Home Assistant »** (*Allow the device to perform Home Assistant actions*).
+* **ESPHome** (`esp-idf`) via Home Assistant ou CLI.
+* **Home Assistant** incluant l'intégration **Music Assistant** (Sendspin) et une entité météo (`weather.forecast_maison` par défaut, paramétrable dans `.variables`).
+* **Autorisation indispensable** : dans Home Assistant, allez dans **Paramètres → Appareils et services → ESPHome → Votre Radio → Configurer / Options** et cochez **« Autoriser l'appareil à exécuter des actions Home Assistant »** (*Allow the device to perform Home Assistant actions*).
 
 ### 2. Arborescence des fichiers requise
 
@@ -276,14 +265,13 @@ wifi_ssid_1: "Votre_SSID_Secondaire"
 wifi_password: "Votre_Mot_De_Passe_WiFi"
 ```
 
-
 ---
 
 ## ⚙️ Paramétrage dans Home Assistant
 
 Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et services → ESPHome**, vous disposez des contrôles suivants :
-* **Web Radio Station** (`select`) : choisissez la station jouée en direct par le bouton 4.
-* **Wake word sensitivity** (`select`) : ajustez la sensibilité du micro de réveil.
+* **Web Radio Station** (`select`) : choisissez la station jouée en direct par le bouton 4 (ou parcourue via l'encodeur gauche).
+* **Wake word sensitivity** (`select`) : ajustez la sensibilité du micro de réveil (*Slightly*, *Moderately* ou *Very sensitive*).
 * **Station button 1 à 3** (`text`) : visualisez ou modifiez manuellement les URI (`library://radio/...` ou `http://...`) des boutons Music Assistant.
 * **Station button 4** (`text`) : saisissez une URL MP3 personnalisée (`http://...` ou `https://...`) accessible directement depuis la molette sous l'option **`10 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`) : forcez l'identifiant d'entité Home Assistant du lecteur Music Assistant (ex. `media_player.raspiaudio_radio`) si la détection automatique n'est pas souhaitée.
@@ -295,7 +283,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Microcontrôleur** : `esp32-s3-devkitc-1` (Flash 8 Mo, PSRAM Octal 80 MHz, CPU 240 MHz)
 * **Bus I2C (Codec ES8388 @ `0x10`)** : `SDA = GPIO18`, `SCL = GPIO11`
 * **Bus I2S Audio** : `MCLK = GPIO0`, `BCLK = GPIO5`, `LRCLK = GPIO16`, `DOUT = GPIO17`, `DIN = GPIO4`, `DAC_MUTE = GPIO46`
-* **Écran SPI (ST7789V 320×240)** : `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
+* **Écran SPI (`mipi_spi` ST7789V 320×240)** : `CLK = GPIO12`, `MOSI = GPIO8`, `CS = GPIO40`, `DC = GPIO39`, `RST = GPIO9`, `Backlight = GPIO41`
 * **Entrées & Alimentation** : Boutons `ADC = GPIO1`, Encodeur `Volume = GPIO42/GPIO3 (Clic : GPIO48)`, Encodeur `Fonction = GPIO7/GPIO6 (Clic : GPIO45)`, Détection `Casque = GPIO10`, Récepteur `IR = GPIO47`, Batterie `ADC = GPIO13`, Alimentation `USB = GPIO21`
 
 ---
@@ -315,8 +303,8 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 ### 3. Le volume sonore est trop fort au démarrage ou au lancement de la Web Radio
 * **Cause** : Par défaut, un composant `media_player` sous ESPHome initialise son volume logiciel à `1.0` (100 %).
 * **Solution** :
-  * Assurez-vous que `volume_initial: 0.3` est bien défini sur `local_radio_player`.
-  * Dans le script `logo`, conservez la limitation temporaire `std::min(id(Vol), 0.30f)` avant la lecture de `little_sound`.
+  * Assurez-vous que `volume_initial: 0.2` est bien défini sur `local_radio_player`.
+  * Dans le script `logo`, conservez la limitation temporaire `std::min(id(Vol), 0.20f)` avant la lecture de `little_sound`.
 
 ### 4. L'assistant vocal ne se déclenche pas à la voix (*Okay Nabu*) pendant la musique
 * **Comportement normal** : Pour éviter que le haut-parleur n'auto-déclenche le micro et pour préserver les ressources CPU de l'ESP32-S3 pendant le décodage FLAC 48 kHz, `micro_wake_word` est volontairement mis en pause lorsque `music_active` est vrai.
