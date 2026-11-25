@@ -87,6 +87,7 @@ Organize your files in `/config/esphome/` to include the main config (`Raspiaudi
 ├── secrets.yaml
 ├── common/base_text_sensor.yaml
 ├── docs/screen.jpg
+├── examples/raspiaudio-minimal.yaml
 ├── stations/stations.yaml
 └── images/ (Raspiaudio.png, WFWW.png, W.png, LISTEN.png, ANSWER.png, mute_mic.png, mute_speaker.png)
 ```
@@ -298,6 +299,7 @@ Placez les fichiers dans `/config/esphome/` en conservant cette structure :
 ├── secrets.yaml
 ├── common/base_text_sensor.yaml
 ├── docs/screen.jpg
+├── examples/raspiaudio-minimal.yaml
 ├── stations/stations.yaml
 └── images/ (Raspiaudio.png, WFWW.png, W.png, LISTEN.png, ANSWER.png, mute_mic.png, mute_speaker.png)
 ```
