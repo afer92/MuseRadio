@@ -328,6 +328,8 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 
 ---
 
+![Écran horloge](docs/clock.jpg)
+
 ## 📄 Licence
 
 Ce projet est distribué sous licence **GNU General Public License v3.0 (GPL-3.0)** — consultez le fichier [LICENSE](LICENSE) pour plus de détails.
