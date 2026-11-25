@@ -114,8 +114,8 @@ Instead of manually copying all YAML files, you can import this repository direc
 ```yaml
 substitutions:
   deviceid: "aaa000" # your choice
-  name: raspiaudio-radio-\${deviceid}
-  friendly_name: Raspiaudio Radio \${deviceid}
+  name: raspiaudio-radio-${deviceid}
+  friendly_name: Raspiaudio Radio ${deviceid}
 
 .variables:
   - &weather_entity "weather.forecast_maison" # your weather entity
