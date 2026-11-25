@@ -227,7 +227,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 
 Vous pouvez flasher directement le firmware précompilé sur votre carte **Raspiaudio Radio (ESP32-S3)** en USB sans installer ESPHome :
 
-👉 **[Install via Browser (ESP Web Tools)]([https://github.io](https://afer92.github.io/MuseRadio/)** *(Nécessite Google Chrome ou Microsoft Edge sur ordinateur)*
+👉 **https://afer92.github.io/MuseRadio** *(Nécessite Google Chrome ou Microsoft Edge sur ordinateur)*
 
 Une fois le flashage terminé, connectez-vous au point d'accès Wi-Fi **`Raspiaudio-radio-full`** (mot de passe : `12345678`) pour configurer votre réseau Wi-Fi.
 
