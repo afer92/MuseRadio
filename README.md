@@ -324,15 +324,15 @@ Plutôt que de copier manuellement tous les fichiers YAML, vous pouvez importer 
 ```yaml
 substitutions:
   deviceid: "aaa000" # votre choix
-  name: raspiaudio-radio-\${deviceid}
-  friendly_name: Raspiaudio Radio \${deviceid}
+  name: raspiaudio-radio-${deviceid}
+  friendly_name: Raspiaudio Radio ${deviceid}
 
 .variables:
   - &weather_entity "weather.forecast_maison" # votre identité weather
 
 packages:
   museradio:
-    url: https://github.com
+    url: https://github.com/afer92/MuseRadio
     ref: main
     files:
       - Raspiaudio.yaml
