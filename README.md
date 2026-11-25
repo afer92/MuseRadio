@@ -3,7 +3,7 @@
 [![GitHub Release](https://shields.io)](https://github.com/afer92/MuseRadio/releases)
 [![License: GPL v3](https://shields.io)](https://github.com/afer92/MuseRadio/blob/main/LICENSE)
 [![ESPHome](https://shields.io)](https://esphome.io)
-[![Build Firmware](https://github.com/afer92/MuseRadio)](https://github.com/afer92/MuseRadio)
+[![Build Firmware](https://github.com/afer92/MuseRadio/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/afer92/MuseRadio/actions/workflows/deploy-pages.yml)
 [![Install via Browser](https://shields.io)](https://afer92.github.io/MuseRadio/)
 
 ![Raspiaudio Radio Screen Preview](docs/screen.jpg)
