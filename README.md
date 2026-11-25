@@ -157,7 +157,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Solution**: Replace `"weather.forecast_maison"` at the top of `Raspiaudio.yaml` with your actual Home Assistant weather entity ID (e.g., `"weather.home"` or `"weather.openweathermap"`).
 
 ### 8. Screen stays black or stuck on `"Waiting WiFi..."`
-* **Black screen after 1 minute**: The backlight automatically turns off after `60 s` of inactivity (`lightTO`). Turn either rotary encoder or press any button to wake the screen.
+* **Clock screen after 1 minute**: The clock screen automatically turns on after `60 s` of inactivity (`lightTO`). Turn either rotary encoder or press any button to wake the screen.
 * **Stuck on `"Waiting WiFi..."`**: Check your credentials in `secrets.yaml`. If no configured network is reachable, the device enables its fallback access point **`Raspiaudio-radio-full`** (password: `12345678`) so you can reconfigure Wi-Fi via the captive portal.
 
 ---
@@ -323,7 +323,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Solution** : Remplacez `"weather.forecast_maison"` en haut du fichier YAML par l'identifiant exact de votre entité météo Home Assistant (ex. `"weather.maison"` ou `"weather.openweathermap"`).
 
 ### 8. L'écran reste noir ou bloqué sur `"Waiting WiFi..."`
-* **Écran noir après 1 minute** : Le rétroéclairage s'éteint automatiquement après `60 s` d'inactivité (`lightTO`). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
+* **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
 * **Bloqué sur `"Waiting WiFi..."`** : Vérifiez les identifiants dans `secrets.yaml`. En cas d'absence prolongée de réseau, l'appareil active son point d'accès de secours **`Raspiaudio-radio-full`** (mot de passe : `12345678`) permettant de reconfigurer le Wi-Fi via le portail captif.
 
 ---
