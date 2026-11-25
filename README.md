@@ -1,6 +1,6 @@
 # 📻 Raspiaudio Radio — ESPHome Firmware (Music Assistant, Voice Assistant & Standalone Web Radio)
 
-[![GitHub Release](https://shields.io)](https://github.com/afer92/MuseRadio/releases)
+![GitHub Release](https://img.shields.io/github/v/release/afer92/MuseRadio)
 [![License: GPL v3](https://shields.io)](https://github.com/afer92/MuseRadio/blob/main/LICENSE)
 [![ESPHome](https://shields.io)](https://esphome.io)
 [![Build Firmware](https://github.com/afer92/MuseRadio/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/afer92/MuseRadio/actions/workflows/deploy-pages.yml)
