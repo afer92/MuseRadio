@@ -1,0 +1,37 @@
+substitutions:
+  deviceid: "aaa000"
+  name: raspiaudio-radio-${deviceid}
+  friendly_name: Raspiaudio Radio ${deviceid}
+
+.variables:
+  - &weather_entity "weather.forecast_maison"
+
+# Importation directe du firmware complet depuis GitHub / Direct remote package import
+packages:
+  museradio:
+    url: https://github.com
+    ref: main
+    files:
+      - Raspiaudio.yaml
+    refresh: 1d
+
+# Surcharge locale : identifiants Wi-Fi et coordonnées GPS (secrets.yaml local)
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+    - ssid: !secret wifi_ssid_1
+      password: !secret wifi_password
+
+sun:
+  latitude: !secret latitude
+  longitude: !secret longitude
+
+# Surcharge locale (optionnelle) : entité météo de votre Home Assistant
+sensor:
+  - id: !extend ha_weather_temperature
+    entity_id: *weather_entity
+
+text_sensor:
+  - id: !extend ha_weather_condition
+    entity_id: *weather_entity
