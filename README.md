@@ -39,7 +39,7 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 
 ### 3. Clock Screensaver & Adaptive Brightness
 * **Automatic Standby (`clockP`)**: After `60 s` of inactivity (`lightTO`), the screen switches to a clock screensaver displaying the current time, date, outdoor temperature, weather icon, and battery level.
-* **Day/Night Backlight (`update_clock_brightness`)**: Automatically adjusts backlight intensity to **75%** during the day (`07:00–21:59`) and **25%** at night (`22:00–06:59`).
+* **Astronomical Day/Night Backlight (`sun` + `update_clock_brightness`)**: Uses local sunrise and sunset times (based on your `latitude` and `longitude`) to automatically set backlight brightness to **75%** during daytime and **25%** at night.
 
 ### 4. Advanced Hardware Management
 * **ES8388 Audio Codec**:
@@ -93,12 +93,14 @@ Organize your files in `/config/esphome/` to include the main config (`Raspiaudi
 
 
 ### 3. Configuring `secrets.yaml`
-Add your Wi-Fi credentials in `secrets.yaml`:
+Add your Wi-Fi credentials and geographic coordinates (used for sunrise/sunset screen brightness) in `secrets.yaml`:
 
 ```yaml
 wifi_ssid: "Your_Primary_SSID"
 wifi_ssid_1: "Your_Secondary_SSID"
 wifi_password: "Your_WiFi_Password"
+latitude: 48.8966
+longitude: 2.2567
 ```
 ---
 
@@ -162,7 +164,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Solution**: Replace `"weather.forecast_maison"` at the top of `Raspiaudio.yaml` with your actual Home Assistant weather entity ID (e.g., `"weather.home"` or `"weather.openweathermap"`).
 
 ### 8. Screen stays on clock or stuck on `"Waiting WiFi..."`
-* **Clock screen after 1 minute**: The clock screen automatically turns on after `60 s` of inactivity (`lightTO`). Turn either rotary encoder or press any button to wake the screen.
+* **Clock screen after 1 minute**: The clock screen automatically turns on after `60 s` of inactivity (`lightTO`) with automatic sunrise/sunset brightness (75% day / 25% night). Turn either rotary encoder or press any button to wake the screen.
 * **Stuck on `"Waiting WiFi..."`**: Check your credentials in `secrets.yaml`. If no configured network is reachable, the device enables its fallback access point **`Raspiaudio-radio-full`** (password: `12345678`) so you can reconfigure Wi-Fi via the captive portal.
 
 ---
@@ -209,7 +211,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 * **Codec Audio ES8388** :
   * Détection automatique de prise casque (`GPIO10`) avec commutation matérielle des registres I2C entre haut-parleur interne et sortie ligne/casque.
   * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
-* **Écran Horloge intelligent (`clockP`)** : s'active automatiquement après `60 s` d'inactivité en veille, affiche l'heure, la date, la météo et le niveau de batterie, et ajuste automatiquement la luminosité du rétroéclairage (75 % de 7h00 à 21h59, 25 % la nuit).
+* **Écran Horloge intelligent (`clockP`)** : s'active automatiquement après `60 s` d'inactivité en veille, affiche l'heure, la date, la météo et le niveau de batterie, et ajuste automatiquement la luminosité du rétroéclairage selon les heures réelles de lever et de coucher du soleil (75 % le jour, 25 % la nuit).
 * **Alimentation & Batterie** : mesure de tension (`GPIO13`) convertie en pourcentage via une courbe polynomiale à 22 points et détection de charge USB (`GPIO21`).
 * **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute, déclenchement de l'assistant vocal, changement de station Web Radio (suivante/précédente) et démarrage/arrêt de la Web Radio locale.
 
@@ -264,6 +266,8 @@ Configurez vos identifiants Wi-Fi (principal et de secours) dans `secrets.yaml` 
 wifi_ssid: "Votre_SSID_Principal"
 wifi_ssid_1: "Votre_SSID_Secondaire"
 wifi_password: "Votre_Mot_De_Passe_WiFi"
+latitude: 48.8966
+longitude: 2.2567
 ```
 
 ---
@@ -327,7 +331,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Solution** : Remplacez `"weather.forecast_maison"` en haut du fichier YAML par l'identifiant exact de votre entité météo Home Assistant (ex. `"weather.maison"` ou `"weather.openweathermap"`).
 
 ### 8. L'écran reste sur l'horloge ou est bloqué sur `"Waiting WiFi..."`
-* **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`) avec luminosité adaptative jour/nuit. Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
+* **Horloge après 1 minute** : L'écran horloge s'affiche automatiquement après `60 s` d'inactivité (`lightTO`) avec luminosité adaptative selon le lever et le coucher du soleil (75 % le jour / 25 % la nuit). Tournez n'importe quelle molette ou appuyez sur un bouton pour le réveiller.
 * **Bloqué sur `"Waiting WiFi..."`** : Vérifiez les identifiants dans `secrets.yaml`. En cas d'absence prolongée de réseau, l'appareil active son point d'accès de secours **`Raspiaudio-radio-full`** (mot de passe : `12345678`) permettant de reconfigurer le Wi-Fi via le portail captif.
 
 ---
