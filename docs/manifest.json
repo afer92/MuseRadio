@@ -1,6 +1,6 @@
 {
   "name": "raspiaudio.radio",
-  "version": "2026.9.5",
+  "version": "v1.0.3",
   "home_assistant_domain": "esphome",
   "new_install_prompt_erase": false,
   "builds": [
