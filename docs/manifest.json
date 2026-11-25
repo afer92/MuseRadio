@@ -1,16 +1,22 @@
 {
-  "name": "MuseRadio (Raspiaudio Radio)",
-  "version": "1.0.0",
+  "name": "raspiaudio.radio",
+  "version": "2026.9.5",
   "home_assistant_domain": "esphome",
-  "new_install_prompt_erase": true,
+  "new_install_prompt_erase": false,
   "builds": [
     {
       "chipFamily": "ESP32-S3",
-      "improv": false,
+      "ota": {
+        "path": "raspiaudio-radio-esp32s3.ota.bin",
+        "md5": "029a4a8cdebf92b3482c75f03c25824f",
+        "sha256": "eb9ded617a676c1ae7b62969d89ba2c543d84cb29d57f25caf79ce2d1e1652c3"
+      },
       "parts": [
         {
-          "path": "raspiaudio-radio.factory.bin",
-          "offset": 0
+          "path": "raspiaudio-radio-esp32s3.factory.bin",
+          "offset": 0,
+          "md5": "0543cd6b0b30a8aff085303fd3cb206c",
+          "sha256": "0d51cd3f0ebebdafef63eee38251f5fe335ff7886100f8996652a75dae120daf"
         }
       ]
     }
