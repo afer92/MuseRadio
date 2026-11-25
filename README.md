@@ -104,6 +104,50 @@ longitude: 2.2567
 ```
 ---
 
+### 4. Minimal Remote Package Installation (Recommended for ESPHome Dashboard)
+
+Instead of manually copying all YAML files, you can import this repository directly as a remote ESPHome package (see [`examples/raspiaudio-minimal.yaml`](examples/raspiaudio-minimal.yaml)):
+
+1. Copy the **`images/`** folder from this repository into your local `/config/esphome/images/` directory (ESPHome does not automatically download binary PNG assets from remote GitHub packages).
+2. Create a new device in your ESPHome Dashboard with the following minimal configuration:
+
+```yaml
+substitutions:
+  deviceid: "aaa000" # your choice
+  name: raspiaudio-radio-\${deviceid}
+  friendly_name: Raspiaudio Radio \${deviceid}
+
+.variables:
+  - &weather_entity "weather.forecast_maison" # your weather entity
+
+packages:
+  museradio:
+    url: https://github.com/afer92/MuseRadio
+    ref: main
+    files:
+      - Raspiaudio.yaml
+    refresh: 1d
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+    - ssid: !secret wifi_ssid_1
+      password: !secret wifi_password
+
+sun:
+  latitude: !secret latitude
+  longitude: !secret longitude
+
+sensor:
+  - id: !extend ha_weather_temperature
+    entity_id: *weather_entity
+
+text_sensor:
+  - id: !extend ha_weather_condition
+    entity_id: *weather_entity
+```
+
 ## ⚙️ Home Assistant Configuration
 
 Once the device is flashed and added under **Settings → Devices & Services → ESPHome**, the following configuration entities are available:
@@ -268,6 +312,50 @@ wifi_ssid_1: "Votre_SSID_Secondaire"
 wifi_password: "Votre_Mot_De_Passe_WiFi"
 latitude: 48.8966
 longitude: 2.2567
+```
+
+### 4. Installation via Package distant minimaliste (Recommandée sous ESPHome Dashboard)
+
+Plutôt que de copier manuellement tous les fichiers YAML, vous pouvez importer ce dépôt directement comme package distant ESPHome (voir [`examples/raspiaudio-minimal.yaml`](examples/raspiaudio-minimal.yaml)) :
+
+1. Copiez uniquement le dossier **`images/`** de ce dépôt dans votre répertoire local `/config/esphome/images/` (ESPHome ne télécharge pas automatiquement les fichiers binaires `.png` depuis un package GitHub distant).
+2. Créez un nouvel appareil dans votre tableau de bord ESPHome avec cette configuration minimale :
+
+```yaml
+substitutions:
+  deviceid: "aaa000" # votre choix
+  name: raspiaudio-radio-\${deviceid}
+  friendly_name: Raspiaudio Radio \${deviceid}
+
+.variables:
+  - &weather_entity "weather.forecast_maison" # votre identité weather
+
+packages:
+  museradio:
+    url: https://github.com
+    ref: main
+    files:
+      - Raspiaudio.yaml
+    refresh: 1d
+
+wifi:
+  networks:
+    - ssid: !secret wifi_ssid
+      password: !secret wifi_password
+    - ssid: !secret wifi_ssid_1
+      password: !secret wifi_password
+
+sun:
+  latitude: !secret latitude
+  longitude: !secret longitude
+
+sensor:
+  - id: !extend ha_weather_temperature
+    entity_id: *weather_entity
+
+text_sensor:
+  - id: !extend ha_weather_condition
+    entity_id: *weather_entity
 ```
 
 ---
