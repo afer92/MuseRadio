@@ -59,6 +59,10 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 | **Buttons 1–3** | `GPIO1` (ADC) | Plays **MA Presets 1–3** | Saves current station to Presets 1–3 |
 | **Button 4 (Confirm)** | `GPIO1` (ADC) | Starts / Stops **Local Web Radio** | — |
 
+### 📡 Infrared Remote Control (`GPIO47`, NEC Protocol)
+
+![Infrared Remote Control](docs/remote_en.jpg)
+
 ---
 
 ## 🛠️ Installation & Prerequisites
@@ -276,6 +280,10 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 | **Clic Encodeur Fonction** | `GPIO45` | Lance / interrompt **Assist** | Active / désactive **Mute Microphone** (≥ 1 s) |
 | **Boutons 1 à 3** | `GPIO1` (ADC) | Joue les **Presets MA 1 à 3** | Mémorise la station MA en cours sur **Presets 1 à 3** |
 | **Bouton 4 (Confirm)** | `GPIO1` (ADC) | Démarre / Arrête la **Web Radio locale** | — |
+
+### 📡 Télécommande Infrarouge (`GPIO47`, Protocole NEC)
+
+![Télécommande Infrarouge](docs/remote_fr.jpg)
 
 ---
 
