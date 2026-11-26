@@ -274,7 +274,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 
 ## 🎛️ Commandes physiques
 
-![Raspiaudio Radio Controls](docs/radio_fr.jpg)
+![Commandes physiques Raspiaudio Radio](docs/radio_fr.jpg)
 
 | Contrôle | Broche(s) | Action courte | Action longue / Rotation |
 | :--- | :--- | :--- | :--- |
