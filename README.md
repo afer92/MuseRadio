@@ -157,6 +157,8 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Station button 4** (`text`): Enter a custom MP3 stream URL (`http://...` or `https://...`) accessible directly via the station encoder under option **`10 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`): Override the Home Assistant entity ID of the Music Assistant player (e.g., `media_player.raspiaudio_radio`) if automatic detection is not desired.
 * **Mute Microphone** (`switch`): Mutes or unmutes the local microphone (also controllable via a long press on `GPIO45`), showing a **`MIC OFF`** badge on standby and clock screens.
+* **Clock Brightness Day** (`number`): Adjusts the daytime backlight percentage for the clock screensaver (default: `75%`, range: `10–100%`).
+* **Clock Brightness Night** (`number`): Adjusts the nighttime backlight percentage for the clock screensaver (default: `25%`, range: `0–100%`).
 
 ---
 
@@ -371,6 +373,8 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Station button 4** (`text`) : saisissez une URL MP3 personnalisée (`http://...` ou `https://...`) accessible directement depuis la molette sous l'option **`10 - Station 4 (URL)`**.
 * **set_ma_player_entity_id** (`text`) : forcez l'identifiant d'entité Home Assistant du lecteur Music Assistant (ex. `media_player.raspiaudio_radio`) si la détection automatique n'est pas souhaitée.
 * **Mute Microphone** (`switch`) : Contrôle du micro (pilotable aussi via appui long sur `GPIO45`) avec indicateur visuel et badge **`MIC OFF`**.
+* **Clock Brightness Day** (`number`) : règle le pourcentage de luminosité de jour de l'écran horloge (par défaut : `75 %`, plage : `10–100 %`).
+* **Clock Brightness Night** (`number`) : règle le pourcentage de luminosité de nuit de l'écran horloge (par défaut : `25 %`, plage : `0–100 %`).
 
 ---
 
