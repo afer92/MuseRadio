@@ -44,7 +44,7 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 ### 4. Advanced Hardware Management
 * **ES8388 Audio Codec**: Features automatic headphone jack detection (`GPIO10`) with I2C switching, an on-screen **`CASQUE`** indicator, and fine gain adjustment for low volumes (< 10%).
 * **Power & Battery**: Uses voltage measurement (`GPIO13`) mapped via a polynomial curve for percentage, alongside USB charging detection (`GPIO21`).
-* **Infrared Remote (`GPIO47`, NEC protocol)**: Controls volume, mute, voice assistant, Music Assistant presets (1–3), Web Radio stations, and playback-stopping standby via the `Bin` key.
+* **Infrared Remote (`GPIO47`, NEC protocol)**: Controls volume, mute, voice assistant, Music Assistant presets (1–3), Web Radio stations, playback-stopping standby via the `Bin` key, and safe device reboot via a double-press on the **Red button**.
 
 ---
 
@@ -160,6 +160,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Clock Brightness Day** (`number`): Adjusts the daytime backlight percentage for the clock screensaver (default: `75%`, range: `10–100%`).
 * **Clock Brightness Night** (`number`): Adjusts the nighttime backlight percentage for the clock screensaver (default: `25%`, range: `0–100%`).
 * **Clock Standby Timeout** (`number`): Sets the inactivity delay in seconds before switching to the clock screensaver (default: `60 s`, range: `5–600 s`).
+* **Restart Radio** (`button`): Safely reboots the ESP32-S3 device from Home Assistant (also triggered via a double-press on the IR **Red button**).
 
 ---
 
@@ -261,7 +262,7 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
   * Courbe de gain fine sur les registres `0x2E`–`0x31` pour un réglage précis à très bas volume (`< 10 %`).
 * **Écran Horloge intelligent (`clockP`)** : s'active automatiquement après `60 s` d'inactivité en veille, affiche l'heure, la date, la météo et le niveau de batterie, et ajuste automatiquement la luminosité du rétroéclairage selon les heures réelles de lever et de coucher du soleil (75 % le jour, 25 % la nuit).
 * **Alimentation & Batterie** : mesure de tension (`GPIO13`) convertie en pourcentage via une courbe polynomiale à 22 points et détection de charge USB (`GPIO21`).
-* **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute, déclenchement de l'assistant vocal, changement de station Web Radio (suivante/précédente) et démarrage/arrêt de la Web Radio locale.
+* **Télécommande Infrarouge (`GPIO47`, protocole NEC)** : volume +/-, Mute/Unmute, déclenchement de l'assistant vocal, navigation cyclique sur les presets Music Assistant (flèches Haut/Bas), changement de station Web Radio, arrêt global avec retour immédiat à l'horloge (touche `Bin`) et redémarrage sécurisé par double appui sur le **bouton Rouge**.
 
 ---
 
@@ -377,6 +378,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Clock Brightness Day** (`number`) : règle le pourcentage de luminosité de jour de l'écran horloge (par défaut : `75 %`, plage : `10–100 %`).
 * **Clock Brightness Night** (`number`) : règle le pourcentage de luminosité de nuit de l'écran horloge (par défaut : `25 %`, plage : `0–100 %`).
 * **Clock Standby Timeout** (`number`) : définit le délai d'inactivité en secondes avant l'affichage de l'écran horloge (par défaut : `60 s`, plage : `5–600 s`).
+* **Restart Radio** (`button`) : redémarre proprement la radio depuis Home Assistant (également accessible par un double appui sur le **bouton Rouge** de la télécommande IR).
 
 ---
 
