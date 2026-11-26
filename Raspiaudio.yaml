@@ -246,7 +246,14 @@ remote_receiver:
           then:
             - logger.log: "IR stop all playback"
             - script.execute: stop_all_playback
-                
+      - if:
+          # Bouton Rouge -> Redémarrage de la radio (remplacer 0xXXXX par le code relevé dans les logs)
+          condition:
+            lambda: 'return ((x.command == 0xFF00) && (x.address == 0xFE01));'
+          then:
+            - logger.log: "IR red button pressed"
+            - script.execute: ir_reboot_confirm
+
 
 es8388:
 
@@ -605,6 +612,10 @@ globals:
   - id: current_ma_preset
     type: int
     initial_value: '0'
+  - id: ir_reboot_last_ms
+    type: uint32_t
+    initial_value: '0'
+
     
 interval:
   - interval: 1s
@@ -615,7 +626,7 @@ interval:
           then:
             - if:
                 condition:
-                  lambda: 'return id(lightTO) < 60;'
+                  lambda: 'return id(lightTO) < static_cast<int>(id(clock_standby_timeout).state);'
                 then:
                   - lambda: id(lightTO)++;
                 else:
@@ -1467,6 +1478,12 @@ switch:
           else:
             - script.execute: reset_display
 
+button:
+  - platform: restart
+    id: reboot_radio_btn
+    name: "Restart Radio"
+    icon: mdi:restart
+              
 number:
   - platform: template
     id: clock_brightness_day
@@ -1505,6 +1522,19 @@ number:
             lambda: 'return id(clock_screensaver_active);'
           then:
             - script.execute: update_clock_brightness
+
+  - platform: template
+    id: clock_standby_timeout
+    name: "Clock Standby Timeout"
+    icon: mdi:timer-cog-outline
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 5
+    max_value: 600
+    step: 5
+    initial_value: 60
+    unit_of_measurement: "s"
               
 select:
   - platform: template
@@ -2773,7 +2803,9 @@ script:
           then:
             - lambda: 'id(phase) = 1;'
             - script.execute: reset_display
-            - lambda: 'id(lightTO) = 55;'
+            - lambda: |-
+                const int timeout = static_cast<int>(id(clock_standby_timeout).state);
+                id(lightTO) = std::max(0, timeout - 5);
 
   - id: waiting
     mode: restart
@@ -2963,4 +2995,36 @@ script:
             id(myDisplay).update();
           }
       - script.execute: update_clock_brightness
+
+  - id: ir_reboot_confirm
+    mode: restart
+    then:
+      - lambda: |-
+          const uint32_t now = millis();
+          if (id(ir_reboot_last_ms) > 0 && (now - id(ir_reboot_last_ms)) < 2000) {
+            id(ir_reboot_last_ms) = 0;
+            id(preset_message) = "REBOOT...";
+          } else {
+            id(ir_reboot_last_ms) = now;
+            id(preset_message) = "REBOOT ? (2x)";
+          }
+      - light.turn_on:
+          id: screen_backlight
+          brightness: 100%
+      - lambda: |-
+          id(lightTO) = 0;
+          if (id(myDisplay).is_ready()) {
+            id(myDisplay).show_page(presetP);
+            id(myDisplay).update();
+          }
+      - if:
+          condition:
+            lambda: 'return id(preset_message) == "REBOOT...";'
+          then:
+            - delay: 800ms
+            - button.press: reboot_radio_btn
+          else:
+            - delay: 2000ms
+            - lambda: 'id(ir_reboot_last_ms) = 0;'
+            - script.execute: reset_display
 
