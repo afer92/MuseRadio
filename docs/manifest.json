@@ -1,6 +1,6 @@
 {
   "name": "raspiaudio.radio",
-  "version": "v1.0.4-2026.11.4",
+  "version": "2026.9.5",
   "home_assistant_domain": "esphome",
   "new_install_prompt_erase": false,
   "builds": [
@@ -8,15 +8,15 @@
       "chipFamily": "ESP32-S3",
       "ota": {
         "path": "raspiaudio-radio-esp32s3.ota.bin",
-        "md5": "2e74dc987a557af544455a1a4215c04e",
-        "sha256": "0f38bc1c4dc2d851d6883e5fc7e0bcbbd5410df619db5e1d5a06fca4d6505f04"
+        "md5": "82c85129f6587d226686a83d026c7f7a",
+        "sha256": "4f53dfeca238471fd9a76923602542104247676bf968598fb792a2070898f7b8"
       },
       "parts": [
         {
           "path": "raspiaudio-radio-esp32s3.factory.bin",
           "offset": 0,
-          "md5": "a210eb7d5d5b3e712b28d630c0facb4d",
-          "sha256": "eef0cbc32f29218200f010cc3b5830e8519f4dc6e14fbdd6e52c1fc93e113f6e"
+          "md5": "c26fe053ebb3f22b9962e649470ddee7",
+          "sha256": "1efaf803779d18c7e590afbb65f61895803cd51409f17310534e37d992161698"
         }
       ]
     }
