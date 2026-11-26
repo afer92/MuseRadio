@@ -159,6 +159,7 @@ Once the device is flashed and added under **Settings → Devices & Services →
 * **Mute Microphone** (`switch`): Mutes or unmutes the local microphone (also controllable via a long press on `GPIO45`), showing a **`MIC OFF`** badge on standby and clock screens.
 * **Clock Brightness Day** (`number`): Adjusts the daytime backlight percentage for the clock screensaver (default: `75%`, range: `10–100%`).
 * **Clock Brightness Night** (`number`): Adjusts the nighttime backlight percentage for the clock screensaver (default: `25%`, range: `0–100%`).
+* **Clock Standby Timeout** (`number`): Sets the inactivity delay in seconds before switching to the clock screensaver (default: `60 s`, range: `5–600 s`).
 
 ---
 
@@ -375,6 +376,7 @@ Une fois l'appareil flashé et ajouté dans **Paramètres → Appareils et servi
 * **Mute Microphone** (`switch`) : Contrôle du micro (pilotable aussi via appui long sur `GPIO45`) avec indicateur visuel et badge **`MIC OFF`**.
 * **Clock Brightness Day** (`number`) : règle le pourcentage de luminosité de jour de l'écran horloge (par défaut : `75 %`, plage : `10–100 %`).
 * **Clock Brightness Night** (`number`) : règle le pourcentage de luminosité de nuit de l'écran horloge (par défaut : `25 %`, plage : `0–100 %`).
+* **Clock Standby Timeout** (`number`) : définit le délai d'inactivité en secondes avant l'affichage de l'écran horloge (par défaut : `60 s`, plage : `5–600 s`).
 
 ---
 
