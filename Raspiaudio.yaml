@@ -23,7 +23,7 @@ esphome:
   name_add_mac_suffix: false
   project:
     name: raspiaudio.radio
-    version: "v1.0.4-2026.11.4"
+    version: "2026.9.5"
   on_boot:
     - priority: 800
       then:
@@ -1466,6 +1466,45 @@ switch:
             - component.update: myDisplay
           else:
             - script.execute: reset_display
+
+number:
+  - platform: template
+    id: clock_brightness_day
+    name: "Clock Brightness Day"
+    icon: mdi:brightness-7
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 10
+    max_value: 100
+    step: 5
+    initial_value: 75
+    unit_of_measurement: "%"
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(clock_screensaver_active);'
+          then:
+            - script.execute: update_clock_brightness
+
+  - platform: template
+    id: clock_brightness_night
+    name: "Clock Brightness Night"
+    icon: mdi:brightness-4
+    entity_category: config
+    optimistic: true
+    restore_value: true
+    min_value: 0
+    max_value: 100
+    step: 5
+    initial_value: 25
+    unit_of_measurement: "%"
+    on_value:
+      - if:
+          condition:
+            lambda: 'return id(clock_screensaver_active);'
+          then:
+            - script.execute: update_clock_brightness
               
 select:
   - platform: template
@@ -2851,11 +2890,11 @@ script:
                 then:
                   - light.turn_on:
                       id: screen_backlight
-                      brightness: 75%
+                      brightness: !lambda 'return id(clock_brightness_day).state / 100.0f;'
                 else:
                   - light.turn_on:
                       id: screen_backlight
-                      brightness: 25%
+                      brightness: !lambda 'return id(clock_brightness_night).state / 100.0f;'
 
   - id: cycle_ma_preset
     mode: restart
