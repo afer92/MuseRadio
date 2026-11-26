@@ -50,6 +50,8 @@ Complete, optimized **ESPHome** configuration for the **Raspiaudio Radio (ESP32-
 
 ## 🎛️ Physical Controls
 
+![Raspiaudio Radio Controls](docs/radio_en.jpg)
+
 | Control | Pin(s) | Short Press | Long Press / Rotation |
 | :--- | :--- | :--- | :--- |
 | **Volume Encoder** | `GPIO42` / `GPIO3` | — | Adjusts volume (MA group or local volume) |
@@ -271,6 +273,8 @@ Configuration **ESPHome** complète et optimisée pour la carte **Raspiaudio Rad
 ---
 
 ## 🎛️ Commandes physiques
+
+![Raspiaudio Radio Controls](docs/radio_fr.jpg)
 
 | Contrôle | Broche(s) | Action courte | Action longue / Rotation |
 | :--- | :--- | :--- | :--- |
