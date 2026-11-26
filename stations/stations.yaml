@@ -18,8 +18,8 @@ substitutions:
   st_6_name: "6 - Radio Classique"
   st_6_url: "http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3"
 
-  st_7_name: "7 - Radio Classique"
-  st_7_url: "http://radioclassique.ice.infomaniak.ch/radioclassique-high.mp3"
+  st_7_name: "7 - ICI IdF"
+  st_7_url: "http://direct.francebleu.fr/live/fb1071-midfi.mp3"
 
   st_8_name: "8 - France Culture"
   st_8_url: "https://icecast.radiofrance.fr/franceculture-midfi.mp3"
